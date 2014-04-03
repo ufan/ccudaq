@@ -6,58 +6,6 @@
 Wed May  8 14:17:58 2013 Take it from main.cpp
 ****************************************************/
 
-// from YongSheng--------------------
-#include <stdio.h>  
-#include <stdlib.h>  
-#include <errno.h>  
-#include <string.h>  
-#include <unistd.h>  
-#include <arpa/inet.h>  
-#include <netinet/in.h>  
-#include <sys/types.h>  
-#include <sys/socket.h>  
-#include <sys/wait.h>  
-#include <sys/time.h>  
-#include <sys/types.h>  
-#include <string.h>
-
-struct CLIENT {
-  int fd;
-  struct sockaddr_in addr;
-} ;
-
-CLIENT client[FD_SETSIZE];
-int nready;
-int slisten, sockfd, maxfd = -1, connectfd;
-unsigned int myport, lisnum;
-struct sockaddr_in my_addr, addr;
-struct timeval tv;
-
-socklen_t len;
-fd_set rset, allset;
-int n, maxi = -1;
-void SendData(int data)
-{
-int temp=data;
-  
-  for (int i = 0; i < FD_SETSIZE; i++) 
-    {
-      if (client[i].fd >-1) 
-	{
-	  if (send(client[i].fd,&temp,2, 0)<0)
-	    {
-	      close(client[i].fd);
-	      FD_CLR(client[i].fd, &allset);
-	      client[i].fd = -1;
-	     
-	    }
-	}
-    }
-}
-char buf[100 + 1];
-
-// ----------------------------------
-
 
 #include "manager.h"
 #include "log.h"

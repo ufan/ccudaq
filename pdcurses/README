@@ -1,0 +1,10 @@
+**CAUTION!**
+
+Programs use pdcurses need to be compiled using the same flags and definition as pdcurses itself.
+It means that you:
+
+1)need to link against system library: user32.lib advapi32.lib
+2)need to add these macro defition as long as the pdcurses library you use has been built using the
+  same macro: -DPDC_WIDE -DPDC_FORCE_UTF8 -DPDC_DLL_BUILD
+
+If you didn't follow these rules,your program may be compiled,but can't be run successfully!

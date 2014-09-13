@@ -17,13 +17,14 @@ LIBDIRS		:=	-L./libs
 LIBS		:=	-lxx_usb -lncurses -lpthread
 INCDIRS		:=	-I./include
 FLAGS		:=	-O -Wall -fPIC -g $(INCDIRS) $(LIBDIRS) $(LIBS) -DNDEBUG
+RFLAGS		:=      -Wl,-rpath=./libs
 
 OBJECTS		:=	main.o manager.o ccu.o adc.o modul.o log.o display.o
 
 daq:	$(OBJECTS)
-	g++ -o daq $(OBJECTS) $(FLAGS)
+	g++ -o daq $(OBJECTS) $(FLAGS) $(RFLAGS)
 
-	cp -r . ../backup2013daq/backup$(BACKUP_MAIN)$(CURRENTTIME)/
+        #cp -r . ../backup2013daq/backup$(BACKUP_MAIN)$(CURRENTTIME)/
 	rm -rf *~
 	@-mkdir ./log
 	@echo "Done"
@@ -51,7 +52,7 @@ display.o:display.cpp display.h global.h
 
 .PHONY:clean
 clean:
-	rm -fr daq $(OBJECTS) *.gch
+	rm -fr daq $(OBJECTS) *.gch log/
 
 run:
 	./daq

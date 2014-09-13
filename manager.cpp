@@ -24,7 +24,8 @@ CManager::CManager()
   mVersion = "0.0.1";  // Initialize Software version number
   welcome();
   
-  lock_isChecked = false;
+  //lock_isChecked = false;
+  lock_isChecked = true;
   lock_isStarted = false;
   lock_isConfiged = true;
   lock_isDaqQuited = true;
@@ -88,7 +89,7 @@ void CManager::CmdAnalyse()
 	      {
 		if ( true == Config() )
 		  {
-		    pDisplay->output("Config Down. ");
+            pDisplay->output("Config Done. ");
 		    lock_isConfiged = true;
 		  }
 		else
@@ -100,7 +101,7 @@ void CManager::CmdAnalyse()
 
 	    break;
 	  }
-
+/*
 	case 2:  // Check guests ------------------------
 	  {
 
@@ -238,7 +239,7 @@ void CManager::CmdAnalyse()
 	    break;
 
 	  }
-
+*/
 	case 3:  // start daq cycle ---------------------
 	  {
 	    pDisplay->output("DAQ cycle is going to start.");
@@ -290,7 +291,7 @@ void CManager::CmdAnalyse()
 		sprintf( buf2 , "    hits = %d " , m_hits);
 		pDisplay->output( buf2 );
 
-		close(slisten);    
+        //close(slisten);
 	      }
 	    else
 	      {

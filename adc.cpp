@@ -11,7 +11,7 @@
 #include <iostream>
 using namespace std;
 
-extern void SendData(int);
+//extern void SendData(int);
 
 CAdc::CAdc( CCcusb* ccu ,int n ) : CModul( ccu , n )
 {
@@ -88,7 +88,7 @@ short CAdc::SparseRead()
 	  */
 	  // add code of sending data to guests
 	  /****************************************************/
-	  SendData(  tempdata  );//???????????????????????????????
+      //SendData(  tempdata  );//???????????????????????????????
 	  //  cout<<tempdata<<endl;
 	  /****************************************************/
 
@@ -307,9 +307,9 @@ bool CAdc::getParaReg( int a, sParm* para)
     return false;
   para->PED = getReg2( a );
 
-  assert(para->UT == 4095);
-  assert(para->LT == 50 );
-  assert(para->PED == 0 );
+  //assert(para->UT == 4095);
+  //assert(para->LT == 50 );
+  //assert(para->PED == 0 );
 
   return true;
 }

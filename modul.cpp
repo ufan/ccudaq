@@ -168,7 +168,7 @@ bool CModul::getReg1All(long* data)
 
       assert( flag>=0 );
 
-      *(data+1) = mCcu->getCamacData();
+      *(data+i) = mCcu->getCamacData();
     }
 
   return true;
@@ -187,7 +187,7 @@ bool CModul::getReg2All(long* data)
 	{
 	  return NULL;
 	}
-      *(data+1) = mCcu->getCamacData();
+      *(data+i) = mCcu->getCamacData();
     }
   return data;  
   

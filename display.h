@@ -6,7 +6,7 @@
 	
 ****************************************************/
 #include "global.h"
-#include <ncurses.h>
+#include "curses.h"
 #include <string>
 #include "adc.h"
 

@@ -15,7 +15,7 @@ Wed May  8 14:13:23 2013  Take it from main.h
 #include "libxxusb.h"
 #include <string>
 #include "global.h"
-#include <pthread.h>
+#include "pthread.h"
 #include "adc.h"
 #include "ccu.h"
 #include "display.h"

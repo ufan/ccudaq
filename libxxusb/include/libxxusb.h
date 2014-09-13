@@ -1,4 +1,7 @@
-#define EXPORT extern "C" _declspec(dllexport)
+#ifndef LIBXXUSB_H
+#define LIBXXUSB_H
+
+#include "lusb0_usb.h"
 
 #define XXUSB_WIENER_VENDOR_ID	0x16DC   /* Wiener, Plein & Baus */
 #define XXUSB_VMUSB_PRODUCT_ID	0x000B	 /* VM-USB */
@@ -112,3 +115,4 @@ short __stdcall CAMAC_C(usb_dev_handle *hdev);
 short __stdcall CAMAC_I(usb_dev_handle *hdev, int inhibit); 
 short __stdcall CAMAC_blockread16(usb_dev_handle *hdev, int N, int A, int F, int loops, int *Data);
 
+#endif

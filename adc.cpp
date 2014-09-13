@@ -61,7 +61,7 @@ short CAdc::SparseRead()
 
   while( 1 )
     {
-      flag == mCcu->CamacNAF( mStation , 0 , 4 );
+      flag = mCcu->CamacNAF( mStation , 0 , 4 );
       assert( 0 <= flag );
 
       if ( flag<0 )

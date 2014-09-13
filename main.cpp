@@ -5,7 +5,7 @@
 # Update History:
 	
 ****************************************************/
-#define NDEBUG
+//#define NDEBUG
 
 #include "manager.h"
 

@@ -9,7 +9,7 @@
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
-#define NDEBUG
+//#define NDEBUG
 #include <assert.h>
 
 #define false 0

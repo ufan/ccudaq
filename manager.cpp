@@ -12,14 +12,16 @@ Wed May  8 14:17:58 2013 Take it from main.cpp
 
 #include <iostream>
 #include "stdio.h"
+#include <stdlib.h>
 #include <fstream>
 #include <sstream>
+#include <windows.h>
 
 using namespace std;
 
 CManager::CManager()
 {
-  system("clear");
+  system("cls");
 
   mVersion = "0.0.1";  // Initialize Software version number
   welcome();
@@ -74,7 +76,7 @@ void CManager::CmdAnalyse()
 	  {
 	    pDisplay->output("Program is going to quit.");
 
-	    sleep(1);
+        Sleep(1000);
 	    CLog("Quit. ");
 	    return;
 	    break;
@@ -668,6 +670,7 @@ void* CManager::displayThread( void* args )
 
     }
 
+  return NULL;
 }
 
 
@@ -681,6 +684,8 @@ void* CManager::daqThread( void* args )
   pMan->lock_isStarted = false;
 
   pMan->lock_isDaqQuited = true;
+
+  return NULL;
 }
 
 

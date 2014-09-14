@@ -21,8 +21,8 @@ CDisplay::CDisplay()
   resize_term(38,80);
 
   form_win = newwin(38,40,0,0);
-  prompt_win = newwin(8,40,0,41);
-  command_win = newwin(30,36,9,41);
+  prompt_win = newwin(8,40,0,40);
+  command_win = newwin(30,40,8,40);
 
   box(form_win,0,0);
 

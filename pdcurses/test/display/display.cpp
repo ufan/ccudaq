@@ -18,15 +18,15 @@ CDisplay::CDisplay()
     }
 
   initscr();
-  resize_term(36,80);
+  resize_term(38,80);
 
-  form_win = newwin(36,40,0,0);
-  prompt_win = newwin(10,40,0,40);
-  command_win = newwin(26,40,10,40);
+  form_win = newwin(38,40,0,0);
+  prompt_win = newwin(8,40,0,40);
+  command_win = newwin(30,40,8,40);
 
   box(form_win,0,0);
-  box(prompt_win,0,0);
-  box(command_win,0,0);
+  //box(prompt_win,0,0);
+  //box(command_win,0,0);
 
   form();
   prompt();

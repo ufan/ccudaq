@@ -326,7 +326,7 @@ bool CManager::FirstLoad()
   string timestr = CManager::getTimeStr();
   //string tempstr = "log/log_" + timestr;
   string tempstr="log.txt";
-  CLog::fileChar = tempstr.c_str();
+  CLog::fileChar = tempstr;
 
   CLog( timestr.c_str() );
 

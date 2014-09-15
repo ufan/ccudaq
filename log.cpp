@@ -11,7 +11,7 @@
 CLog::CLog( const char* str )
 {
   logstr = str;
-  fp.open( fileChar , ios::app );
+  fp.open( fileChar.c_str() , ios::app );
   assert( fp );
 }
 
@@ -23,6 +23,6 @@ CLog::~CLog()
   fp.close();
 }
 
-const char* CLog::fileChar;
+string CLog::fileChar;
 
 

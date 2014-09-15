@@ -26,7 +26,7 @@ class CLog
   string logstr;
 
  public:
-  static const char* fileChar;
+  static string fileChar;
 };
 
 

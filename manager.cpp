@@ -661,7 +661,7 @@ void* CManager::displayThread( void* args )
     {
       now = clock();
       //      if ( ( CLOCKS_PER_SEC ) < ( now - start ) )
-      if ( 1e4 < ( now - start ) )
+      if ( 2000 < ( now - start ) )
 	{
 	  start = clock();
 	  pMan->pDisplay->form( pMan->pADC , pMan->lock_isConfiged);

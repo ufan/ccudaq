@@ -82,7 +82,7 @@ void CDisplay::form( CAdc* pAdc , bool isConfiged )
   for (int i = 0; i < 16; ++i)
     {
       mvwprintw(form_win, 2*i+5, 2,
-		"%4d\t%4d\t%4d\t%4d\t%4d",
+        "%-4d\t%-4d\t%-4d\t%-4d\t%-4d",
 		i+1, mPara[i].UT , mPara[i].LT , mPara[i].PED ,
 		pAdc->mDataReg[i].sData);
     }
@@ -106,7 +106,7 @@ void CDisplay::form()
   for (int i = 0; i < 16; ++i)
     {
       mvwprintw(form_win, 2*i+5, 2,
-		"%d\t%d\t%d\t%d\t%d",
+        "%-4d\t%-4d\t%-4d\t%-4d\t%-4d",
 		i+1 , 0 , 0 , 0 ,0 );
     }
 

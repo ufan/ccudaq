@@ -18,11 +18,12 @@
 
 #include "CCCUSB.h"
 #include "CCCUSBReadoutList.h"
-#include <usb.h>
+#include "lusb0_usb.h"//libusb-win32 header,under Linux it is usb.h
 #include <errno.h>
 #include <string.h>
 #include <string>
-#include <unistd.h>
+//#include <unistd.h>
+#include <windows.h>
 #include <stdio.h>
 
 
@@ -160,13 +161,28 @@ CCCUSB::serialNo(struct usb_device* dev)
       if there is aproblem.
 
 */
+CCCUSB::CCCUSB() :
+    m_timeout(DEFAULT_TIMEOUT)
+{
+    openUsb();
+}
+
+CCCUSB::CCCUSB(const char* serialnumber) :
+    m_serial(serialnumber),
+    m_handle(0),
+    m_device(0),
+    m_timeout(DEFAULT_TIMEOUT)
+{
+  openUsb(true);
+}
+
 CCCUSB::CCCUSB(struct usb_device* device) :
     m_handle(0),
     m_device(device),
     m_timeout(DEFAULT_TIMEOUT)
 {
   m_serial = serialNo(m_device);
-  openUsb();
+  openUsb(true);
 
 }
 ////////////////////////////////////////////////////////////////
@@ -178,7 +194,8 @@ CCCUSB::~CCCUSB()
 {
     usb_release_interface(m_handle, 0);
     usb_close(m_handle);
-    usleep(5000);
+    //usleep(5000);//sleep 5 ms in Linux
+    Sleep(5);//sleep 5 ms in windows
 }
 
 
@@ -195,9 +212,10 @@ CCCUSB::reconnect()
 {
   usb_release_interface(m_handle, 0);
   usb_close(m_handle);
-  usleep(1000);
+  //usleep(1000);
+  Sleep(1);
 
-  openUsb();
+  openUsb(true);
 }
 
 
@@ -245,7 +263,7 @@ CCCUSB::writeActionRegister(uint16_t value)
 				outPacket, outSize, m_timeout);
     if (status < 0) {
 	string message = "Error in usb_bulk_write, writing action register ";
-	message == strerror(-status);
+    message += strerror(-status);
 	throw message;
     }
     if (status != outSize) {
@@ -940,7 +958,7 @@ the module what to make of this cycle, however many modules use it to
 return to their power up configuration..  Almost all clear any buffered data
 an busy, but your module may vary, and only reading the manual for
 the module will ensure that you know what this does.
-This is  N=28, A=8, F=29
+This is  N=28, A=9, F=29
 
   \return int
   \retval 0      - Success
@@ -951,14 +969,14 @@ int
 CCCUSB::c()
 {
   uint16_t qx;
-  return simpleControl(28,8,29, qx);
+  return simpleControl(28,9,29, qx);
 }
 /**********************************************************************/
 /*!
    Perform a Crate Z cycle.  Once more what this does is up to
 module designers.  Read the documentation of the modules you are using
 to understand the effect this will have on your crate.
-N=28, a=9, f=29
+N=28, a=8, f=29
   \return int
   \retval 0      - Success
   \retval other  -Failure code from executeList.
@@ -968,7 +986,7 @@ int
 CCCUSB::z()
 {
   uint16_t qx;
-  return simpleControl(28, 9, 29, qx);
+  return simpleControl(28, 8, 29, qx);
 }
 
 /************************************************************************/
@@ -1059,36 +1077,7 @@ CCCUSB::executeList(CCCUSBReadoutList&     list,
   return (status >= 0) ? 0 : status;
   
 }
-/**
- * This is a swig friendly version of execute list:
- * 
- * @param list - reference to the CCCUSBReadoutList to run.
- * @param maxReadWords - maximum number of 16 bit words that could be read by this list.
- *
- * @return std::vector<uint16_t>
- * @retval Vector of data read by the list.
- */
-std::vector<uint16_t>
-CCCUSB::executeList(CCCUSBReadoutList& list, int maxReadWords)
-{
-  // Allocate the read buffer:
 
-  uint16_t* pReadBuffer = new uint16_t[maxReadWords];
-  size_t   actualBytes(0);
-
-  executeList(list, pReadBuffer, maxReadWords*sizeof(uint16_t),
-	      &actualBytes);
-
-  std::vector<uint16_t> result;
-  for (int i =0; i < actualBytes/sizeof(uint16_t); i++) {
-    result.push_back(pReadBuffer[i]);
-  }
-  delete []pReadBuffer;
-
-  return result;
-
-  
-}
 
 
 
@@ -1491,29 +1480,39 @@ CCCUSB::write16(int n, int a, int f, uint16_t data, uint16_t& qx)
  *  @throw std::string - on errors.
  */
 void
-CCCUSB::openUsb()
+CCCUSB::openUsb(bool useSerialNo)
 {
   // Re-enumerate and get the right value in m_device or throw
   // if our serial number is no longer there:
 
   std::vector<struct usb_device*> devices = enumerate();
   m_device = 0;
-  for (int i = 0; i < devices.size(); i++) {
-    if (serialNo(devices[i]) == m_serial) {
-      m_device = devices[i];
-      break;
+  if(!devices.size()){
+      std::string msg="cannot find CC-USB controllers";
+      throw msg;
+  }
+  if(useSerialNo){
+    for (int i = 0; i < devices.size(); i++) {
+        if (serialNo(devices[i]) == m_serial) {
+            m_device = devices[i];
+            break;
+        }
+    }
+    if (!m_device) {
+        std::string msg = "CC-USB with serial number ";
+        msg += m_serial;
+        msg += " cannot be located";
+        throw msg;
     }
   }
-  if (!m_device) {
-    std::string msg = "CC-USB with serial number ";
-    msg += m_serial;
-    msg += " cannot be located";
-    throw msg;
+  else{
+      m_device=devices.front();
+      serialNo(m_device);
   }
 
     m_handle  = usb_open(m_device);
     if (!m_handle) {
-	throw "CCCUSB::CCCUSB  - unable to open the device";
+        throw "CCCUSB::CCCUSB  - unable to open the device";
     }
     // Now claim the interface.. again this could in theory fail.. but.
 
@@ -1529,5 +1528,6 @@ CCCUSB::openUsb()
     usb_clear_halt(m_handle, ENDPOINT_IN);
     usb_clear_halt(m_handle, ENDPOINT_OUT);
    
-    usleep(100);
+    //usleep(100);
+    Sleep(1);
 }

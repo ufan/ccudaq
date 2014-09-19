@@ -90,6 +90,8 @@ public:
     // and destruction implies a usb_release_interface(),
     // equality comparison has no useful meaning either:
 
+    CCCUSB();
+    CCCUSB(const char* serialnumber);
     CCCUSB(struct usb_device* vmUsbDevice);
     virtual ~CCCUSB();		// Although this is probably a final class.
 
@@ -211,7 +213,7 @@ private:
     int write32(int n, int a, int f, uint32_t data, uint16_t& qx);
     int write16(int n, int a, int f, uint16_t data, uint16_t& qx); /*  just for register writes */
 
-    void openUsb();
+    void openUsb(bool useSerialNo=false);
 
 
   // The following are classes that define bits/fields in the registers of the CC-USB.

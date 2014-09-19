@@ -40,6 +40,7 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 //  The structures below are defined in <usb.h> which is included
 //  by the implementation and can be treated as opaque by any of our
 //  clients (they are in fact opaque in usb.h if memory servers.
@@ -106,6 +107,7 @@ public:
 
     // Register I/O operations.
 public:
+    int  readActionRegister(uint16_t& value);
     void     writeActionRegister(uint16_t value);
 
     // Create an empty readout list
@@ -179,9 +181,11 @@ public:
 
 
     int loadList(uint8_t                listNumber,
-		 CCCUSBReadoutList&    list);
-
-
+         CCCUSBReadoutList&    list,
+                 bool fcheck=true);
+    int readList(uint8_t listNumber,
+                 void* pReadBuffer,
+                 size_t readBufferSize);
     // Once the interface is in DAQ auntonomous mode, the application
     // should call the following function to read acquired data.
 

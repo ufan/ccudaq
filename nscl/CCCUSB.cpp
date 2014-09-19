@@ -232,6 +232,21 @@ CCCUSB::createReadoutList() const
 ////////////////////////////////////////////////////////////////////
 //////////////////////// Register operations ///////////////////////
 ////////////////////////////////////////////////////////////////////
+int
+CCCUSB::readActionRegister(uint16_t &value)
+{
+    char outPacket[10];
+    char* pOut=outPacket;
+
+    pOut = static_cast<char*>(addToPacket16(pOut,1));
+    pOut = static_cast<char*>(addToPacket16(pOut,1));
+
+    int outSize=pOut-outPacket;
+    int status=transaction(outPacket,outSize,&value,sizeof(value));
+
+    return (status==2) ? status : -1;
+}
+
 /*!
     Writing a value to the action register.  This is really the only
     special case for this code.  The action register is the only
@@ -1104,12 +1119,15 @@ CCCUSB::executeList(CCCUSBReadoutList&     list,
 
 \return int
 \retval 0  - AOK.
+\retval -1 - load error
+\retval -2 - readback error
+\retval -3 - inconsistent load and readback list
 \retval -4 - List number is illegal
 \retval other - error from transaction.
 
 */
 int
-CCCUSB::loadList(uint8_t  listNumber, CCCUSBReadoutList& list)
+CCCUSB::loadList(uint8_t  listNumber, CCCUSBReadoutList& list,bool fcheck)
 {
   // Need to construct the TA field, straightforward except for the list number
   // which is splattered all over creation.
@@ -1135,14 +1153,67 @@ CCCUSB::loadList(uint8_t  listNumber, CCCUSBReadoutList& list)
   if (status < 0) {
     errno = -status;
     status= -1;
+    return status;
+  }
+  else if(fcheck){
+      char buffer[1600];
+      char* poutPacket = reinterpret_cast<char*>(outPacket);
+      status=readList(listNumber,buffer,1600);
+      if(status<0)
+          return -2;
+      if(status != packetSize)
+          return -3;
+      else{
+        for(int i=0;i<packetSize;i++){
+            if(buffer[i] != poutPacket[i])
+                return -3;
+        }
+      }
   }
 
   delete []outPacket;
-  return (status >= 0) ? 0 : status;
-
-
-  
+  return 0;
 }
+
+/*
+ * Read List from command stack
+   \param listNumber : uint8_t
+      Number of the list to load.
+      - 0 - Data list
+      - 1 - Scaler list.
+   \param pReadBuffer       : void*
+      Pointer to the buffer for saving the readout-list.
+   \param readBufferSize    : size_t
+      readout buffer size,at least the same size of stack list size
+      recommended value should >768*2
+
+
+\return int
+\retval >=0  - the actual readout byte number
+\retval -1 - read fail
+*/
+int
+CCCUSB::readList(uint8_t listNumber, void *pReadBuffer, size_t readBufferSize)
+{
+    char outPacket[4];
+    char* pOut=outPacket;
+    if (listNumber == 0) {
+      pOut=static_cast<char*>(addToPacket16(TAVcsDATA));
+    }
+    else if (listNumber == 1) {
+      pOut=static_cast<char*>(addToPacket16(TAVcsSCALER));
+    }
+    else {
+      return -4;
+    }
+
+    int outSize = pOut-outPacket;
+    int status=transaction(outPacket,outSize,pReadBuffer,readBufferSize);
+
+    return (status>=0) ? status : -1;
+
+}
+
 /*!
   Execute a bulk read for the user.  The user will need to do this
   when the VMUSB is in autonomous data taking mode to read buffers of data
@@ -1263,7 +1334,9 @@ CCCUSB::transaction(void* writePacket, size_t writeSize,
     int status = usb_bulk_write(m_handle, ENDPOINT_OUT,
 				static_cast<char*>(writePacket), writeSize, 
 				m_timeout);
+#ifdef TRACE
     dumpRequest(writePacket, writeSize, readSize);
+#endif
     if (status < 0) {
 	errno = -status;
 	return -1;		// Write failed!!

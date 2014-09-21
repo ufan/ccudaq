@@ -52,6 +52,7 @@ CManager::~CManager()
   if( pDisplay )
     delete pDisplay;
   delModules();
+  delModuleConfig();
 }
 
 void
@@ -61,6 +62,17 @@ CManager::delModules()
     if(size>0){
         for(int i=0;i<size;i++){
             delete modules[i];
+        }
+    }
+}
+
+void
+CManager::delModuleConfig()
+{
+    int size=config_module.size();
+    if(size>0){
+        for(int i=0;i<size;i++){
+            delete config_module[i];
         }
     }
 }
@@ -191,7 +203,7 @@ bool CManager::FirstLoad()
   string tempstr="log.txt";
   CLog::fileChar = tempstr;
 
-  CLog( timestr.c_str() );
+  CLog( timestr.c_str() ,true);
 
   cout << "Time: " << timestr << endl;
   cout << "Your working will be logged to file " 
@@ -225,9 +237,8 @@ bool CManager::Config()
 
   // Config Devices =======================================
   // Config CCUsb --------------------------
-  pCCU->CamacZ();
+  flag =  pCCU->config(config_cc);
 
-  flag =  pCCU->Config( config_cc );
   if( true == flag )
     {
       CLog("Set CCU successfully");
@@ -241,12 +252,15 @@ bool CManager::Config()
     }
 
   // Config ADC ----------------------------
-  if ( pADC )
-    {
-      delete pADC;
-    }
+  delModules();
 
-  pADC = new CAdc( pCCU , config_adc.station );
+  NSCLmodule* tempmodule;
+  int size=config_module.size();
+  for(int i=0;i<size;i++){
+      tempmodule=new NSCLmodule(pCCU);
+      tempmodule->config(*config_module[i]);
+      modules.push_back(tempmodule);
+  }
 
   flag = pADC->config( config_adc ) ;
   if( true == flag )
@@ -346,151 +360,207 @@ bool CManager::CcusbDevOpen()
 }
 
 
+bool CManager::CcuLoad()
+{
+    string tempstr;
+    uint32_t tempint;
+    // Load cc configs
+    ifstream fp;
+    fp.open( CC_ConfigPath );
+    fp>>hex;
+    if( !fp )
+      {
+        return false;
+      }
+    config_cc.clear();
+
+    while( 1 )
+      {
+        fp >> tempstr;
+        if( "CONFIG_BEGIN" == tempstr )
+      {
+        break;
+      }
+      }
+
+    while( "CONFIG_END" != tempstr )
+      {
+        fp >> tempstr;
+
+        if( tempstr == "GlobalMode" )
+      {
+        fp >> tempstr;
+        fp >> tempint;
+        config_cc.setGlobalMode(tempint);
+      }
+        else if( tempstr == "Delays" )
+      {
+        fp >> tempstr;
+        fp >>tempint;
+        config_cc.setDelays(tempint);
+      }
+        else if( tempstr == "ScalReadCtrl" )
+      {
+        fp >> tempstr;
+        fp >>tempint;
+        config_cc.setScalReadCtrl(tempint);
+      }
+        else if( tempstr == "SelectLED" )
+      {
+        fp >> tempstr;
+        fp >> tempint;
+        config_cc.setSelectLED(tempint);
+      }
+        else if( tempstr == "SelectNIMO" )
+      {
+        fp >> tempstr;
+        fp >> tempint;
+        config_cc.setSelectNIMO(tempint);
+      }
+        else if( tempstr == "SelectUserDevice" )
+      {
+        fp >> tempstr;
+        fp >> tempint;
+        config_cc.setSelectUserDevice(tempint);
+      }
+        else if( tempstr == "TimingDGGA" )
+      {
+        fp >> tempstr;
+        fp >> tempint;
+        config_cc.setTimingDGGA(tempint);
+      }
+        else if( tempstr == "TimingDGGB" )
+      {
+        fp >> tempstr;
+        fp >> tempint;
+        config_cc.setTimingDGGB(tempint);
+      }
+        else if( tempstr == "LAMMask" )
+      {
+        fp >> tempstr;
+        fp >> tempint;
+        config_cc.setLAMMask(tempint);
+      }
+        else if( tempstr == "ExtendedDelay" )
+      {
+        fp >> tempstr;
+        fp >> tempint;
+        config_cc.setExtendedDelay(tempint);
+      }
+
+        else if( tempstr == "UsbBufferSetup" )
+      {
+        fp >> tempstr;
+        fp >> tempint;
+        config_cc.setUsbBufferSetup(tempint);
+      }
+      }
+    fp.close();
+
+    return true;
+}
+
+bool CManager::ModuleLoad()
+{
+    // Load adc configs
+    ifstream fp;
+    string tempstr;
+    int tempint_2;
+    int counter=0;
+    Module_Config* tempconfig;
+    //
+    fp.open( ADC_ConfigPath );
+    if( !fp )
+    {
+        return false;
+    }
+
+    // Clear previous ModuleConfigFactory
+    delModuleConfig();
+    //
+    while( 1 )
+    {
+        fp >> tempstr;
+        if( "CONFIG_BEGIN" == tempstr )
+        {
+            break;
+        }
+    }
+    while("CONFIG_END" != tempstr)
+    {
+        fp >> tempstr;
+        if(tempstr == "STATION")
+        {
+            counter++;
+            tempconfig=new Module_Config();
+            //first is station number
+            fp >> tempstr;
+            fp >> tempint_2;
+            tempconfig->setStation(tempint_2);
+
+            while(tempstr != "STATION_END")
+            {
+                fp >> tempstr;
+                if(tempstr == "NAME"){
+                    fp >> tempstr;
+                    fp >> tempstr;
+                    tempconfig->setName(tempstr);
+                }
+                else if(tempstr == "Channel"){
+                    //discard header
+                    while( 1 )
+                    {
+                        fp >> tempstr;
+                        if( "Index" == tempstr )
+                        {
+                            break;
+                        }
+                    }
+                    //read config data
+                    tempint_2=99;
+                    while(tempint_2 >=0)
+                    {
+                        fp >> tempint_2;
+
+                        if ( 0 == tempint_2 )
+                        {
+                            uint16_t ctrl[3];
+                            for (int i = 0; i < 3; ++i)
+                            {
+                                fp >> ( ctrl[ i ] );
+                            }
+                            uint16_t control=(ctrl[0]<<2) + (ctrl[1]<<1) + ctrl[2];
+                            tempconfig->setCtrl(control);
+                        }
+                        else if( tempint_2 > 0 && tempint_2 <= 16 )
+                        {
+                            int tmp[4];
+                            for (int i = 0; i < 4 ; ++i)
+                            {
+                                fp >> tmp[i];
+                            }
+                            tempconfig->setUT(tempint_2,tmp[0]);
+                            tempconfig->setLT(tempint_2,tmp[1]);
+                            tempconfig->setPED(tempint_2,tmp[2]);
+                        }
+                    }
+                }
+            }
+            config_module.push_back(tempconfig);
+        }
+    }
+
+    if(config_module.size() != counter) return false;
+
+    fp.close();
+
+    return true;
+}
+
 bool CManager::ConfigLoad()
 {
-  string tempstr;
-  int tempint;
-  // Load cc configs
-  ifstream fp;
-  fp.open( CC_ConfigPath );
-  if( !fp )
-    {
-      return false;
-    }
-
-  while( 1 )
-    {
-      fp >> tempstr;
-      if( "CONFIG_BEGIN" == tempstr )
-	{
-	  break;
-	}
-    }
-
-  while( "CONFIG_END" != tempstr )
-    {
-      fp >> tempstr;
-
-      if( tempstr == "GlobalMode" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.GlobalMode = tempint;
-	}
-      else if( tempstr == "Delays" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.Delays = tempint;
-	}
-      else if( tempstr == "ScalReadCtrl" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.ScalReadCtrl = tempint;
-	}
-      else if( tempstr == "SelectLED" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.SelectLED = tempint;
-	}
-      else if( tempstr == "SelectNIMO" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.SelectNIMO = tempint;
-	}
-      else if( tempstr == "SelectUserDevice" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.SelectUserDevice = tempint;
-	}
-      else if( tempstr == "TimingDGGA" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.TimingDGGA = tempint;
-	}
-      else if( tempstr == "TimingDGGB" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.TimingDGGB = tempint;
-	}
-      else if( tempstr == "LAMMask" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.LAMMask = tempint;
-	}
-      else if( tempstr == "ExtendedDelay" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.ExtendedDelay = tempint;
-	}
-
-      else if( tempstr == "UsbBufferSetup" )
-	{
-	  fp >> tempstr;
-	  fp >> tempint;
-	  config_cc.UsbBufferSetup = tempint;
-	}
-    }
-  fp.close();
-
-  // Load adc configs
-  fp.open( ADC_ConfigPath );
-  if( !fp )
-    {
-      return false;
-    }
-
-  while( 1 )
-    {
-      fp >> tempstr;
-      if( "STATION" == tempstr )
-	{
-	  break;
-	}
-    }
-  fp >> tempstr;
-  fp >> tempint;
-  config_adc.station = tempint;
-
-  while( 1 )
-    {
-      fp >> tempstr;
-      if( "PED" == tempstr )
-	{
-	  break;
-	}
-    }
-
-  while( tempint >= 0 )
-    {
-      fp >> tempint;
-
-      if ( 0 == tempint )
-	{
-	  short ctrl[3];
-
-	  for (int i = 0; i < 3; ++i)
-	    {
-	      fp >> ( ctrl[ i ] );
-	    }
-	  config_adc.Ctrl = ( (ctrl[0] << 2) | (ctrl[1] << 1) | (ctrl[0]) );
-	}
-      else if( tempint > 0 && tempint <= 16 )
-	{
-	  for (int i = 0; i < 3 ; ++i)
-	    {
-	      fp >> ( config_adc.Para[ tempint-1 ][ i ] );
-	    }
-	}
-    }
+  if(!CcuLoad())    return false;
+  if(!ModuleLoad()) return false;
 
   return true;
 }

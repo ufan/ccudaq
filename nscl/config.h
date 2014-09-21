@@ -45,6 +45,7 @@ public:
   void dump();
   void dump(CDisplay*);
   void dump(std::string&);
+  void clear();
 
   inline void setGlobalMode(uint16_t value){
       GlobalMode=value;
@@ -127,7 +128,7 @@ public:
 private:
   uint16_t UT[16];
   uint16_t LT[16];
-  uint16_t PED[16];
+  int16_t PED[16];
   uint16_t Ctrl;
   int station;
   std::string name;
@@ -170,10 +171,10 @@ public:
   inline uint16_t getUT(int ch_id){
       return UT[ch_id-1];
   }
-  inline void setPED(int ch_id,uint16_t value){
+  inline void setPED(int ch_id,int16_t value){
       PED[ch_id-1]=value;
   }
-  inline uint16_t getPED(int ch_id){
+  inline int16_t getPED(int ch_id){
       return PED[ch_id-1];
   }
 };

@@ -87,6 +87,22 @@ CC_Config::dump(std::string& tempstr)
 
 }
 
+void
+CC_Config::clear()
+{
+    GlobalMode=0;
+    Delays=0;
+    ScalReadCtrl=0;
+    SelectLED=0;
+    SelectNIMO=0;
+    SelectUserDevice=0;
+    TimingDGGA=0;
+    TimingDGGB=0;
+    ExtendedDelay=0;
+    LAMMask=0;
+    UsbBufferSetup=0;
+}
+
 ////////////////////////////////////
 //Module_Config definition
 ////////////////////////////////////

@@ -21,7 +21,7 @@ Wed May  8 14:13:23 2013  Take it from main.h
 #include "CCCUSBReadoutList.h"
 #include "display.h"
 
-typedef std::vector<Module_Config> ModuleConfigFactory;
+typedef std::vector<Module_Config*> ModuleConfigFactory;
 typedef std::vector<NSCLmodule*>   ModuleFactory;
 
 class CManager
@@ -55,8 +55,11 @@ class CManager
   bool CcusbDevFind();
   bool CcusbDevOpen();
   bool ConfigLoad();  // Load config file
+  bool CcuLoad();
+  bool ModuleLoad();
   bool Config();  // Config CCU and ADC
   void delModules();
+  void delModuleConfig();
 
  public:
   static std::string getTimeStr();  // get current time string

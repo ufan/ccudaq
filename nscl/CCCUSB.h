@@ -41,6 +41,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "config.h"
 //  The structures below are defined in <usb.h> which is included
 //  by the implementation and can be treated as opaque by any of our
 //  clients (they are in fact opaque in usb.h if memory servers.
@@ -104,14 +105,13 @@ private:
     int operator!=(const CCCUSB& rhs) const;
 public:
     void reconnect();
-
-    // Register I/O operations.
-public:
-    int  readActionRegister(uint16_t& value);
-    void     writeActionRegister(uint16_t value);
-
     // Create an empty readout list
     CCCUSBReadoutList* createReadoutList() const;
+
+public:
+    // Register I/O operations.
+    int  readActionRegister(uint16_t& value);
+    void     writeActionRegister(uint16_t value);
 
     // The following execute single CAMAC operations.
     // note that the CC-USB defines all registers but the action register to live in
@@ -124,9 +124,6 @@ public:
     int simpleControl(int n, int a, int f, uint16_t& qx);
 
     // Convenience function that access the CC-USB registers.
-    // Each function or read/write pair of functions is
-    // followed by a swig wrapper:
-
 
     int readFirmware(uint32_t& value);
 
@@ -165,6 +162,7 @@ public:
     int readUSBBulkTransferSetup(uint32_t& value);
     int writeUSBBulkTransferSetup(uint32_t value);
     
+    // CAMAC common control
     int c();
     int z();
     int inhibit();
@@ -196,6 +194,8 @@ public:
 
     void setDefaultTimeout(int ms); // Can alter internally used timeouts.
 
+    bool config(CC_Config&);
+    CC_Config getConfig();
     // Register bit definintions.
 
     // Local functions:

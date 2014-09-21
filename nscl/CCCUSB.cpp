@@ -1262,6 +1262,71 @@ CCCUSB::setDefaultTimeout(int ms)
   m_timeout = ms;
 }
 
+/*
+ * Config CC-USB Controller
+ */
+bool
+CCCUSB::config(CC_Config& configIn)
+{
+    int status;
+    status = writeGlobalMode(configIn.getGlobalMode());
+    if(status<0) return false;
+    status = writeDelays(configIn.getDelays());
+    if(status<0) return false;
+    status = writeScalerControl(configIn.getScalReadCtrl());
+    if(status<0) return false;
+    status = writeLedSelector(configIn.getSelectLED());
+    if(status<0) return false;
+    status = writeOutputSelector(configIn.getSelectNIMO());
+    if(status<0) return false;
+    status = writeDeviceSourceSelectors(configIn.getSelectUserDevice());
+    if(status<0) return false;
+    status = writeDGGA(configIn.getTimingDGGA());
+    if(status<0) return false;
+    status = writeDGGB(configIn.getTimingDGGB());
+    if(status<0) return false;
+    status = writeDGGExt(configIn.getExtendedDelay());
+    if(status<0) return false;
+    status = writeLamTriggers(configIn.getLAMMask());
+    if(status<0) return false;
+    status = writeUSBBulkTransferSetup(configIn.getUsbBufferSetup());
+    if(status<0) return false;
+
+    return true;
+}
+
+CC_Config
+CCCUSB::getConfig()
+{
+    CC_Config ccc;
+    uint16_t feedback1;
+    uint32_t feedback2;
+
+    readGlobalMode(feedback1);
+    ccc.setGlobalMode(feedback1);
+    readDelays(feedback1);
+    ccc.setDelays(feedback1);
+    readScalerControl(feedback2);
+    ccc.setScalReadCtrl(feedback2);
+    readLedSelector(feedback2);
+    ccc.setSelectLED(feedback2);
+    readOutputSelector(feedback2);
+    ccc.setSelectNIMO(feedback2);
+    readDeviceSourceSelectors(feedback2);
+    ccc.setSelectUserDevice(feedback2);
+    readDGGA(feedback2);
+    ccc.setTimingDGGA(feedback2);
+    readDGGB(feedback2);
+    ccc.setTimingDGGB(feedback2);
+    readDGGExt(feedback2);
+    ccc.setExtendedDelay(feedback2);
+    readLamTriggers(feedback2);
+    ccc.setLAMMask(feedback2);
+    readUSBBulkTransferSetup(feedback2);
+    ccc.setUsbBufferSetup(feedback2);
+
+    return ccc;
+}
 
 ////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Utility methods ////////////////////////
@@ -1580,7 +1645,7 @@ CCCUSB::openUsb(bool useSerialNo)
   }
   else{
       m_device=devices.front();
-      serialNo(m_device);
+      m_serial=serialNo(m_device);
   }
 
     m_handle  = usb_open(m_device);

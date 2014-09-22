@@ -44,7 +44,6 @@ CManager::CManager()
     }
 }
 
-
 CManager::~CManager()
 {
   if( pCCU )
@@ -121,31 +120,35 @@ void CManager::CmdAnalyse()
 	    break;
 	  }
 
-	case 3:  // start daq cycle ---------------------
+    case 2:  // start daq cycle ---------------------
 	  {
-	    pDisplay->output("DAQ cycle is going to start.");
+          if(filename.empty()){
+                pDisplay->output("Please set the output filename first");
+          }
+          else{
+                pDisplay->output("DAQ cycle is going to start.");
 
-        if ( true == lock_isStarted )
-	      {
-		pDisplay->output("DAQ cycle is running now.");
-	      }
-	    else
-	      {
-		lock_isStarted = true;
+                if ( true == lock_isStarted )
+                {
+                    pDisplay->output("DAQ cycle is running now.Stop it first");
+                }
+                else
+                {
+                    lock_isStarted = true;
 
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_attr_setdetachstate( &attr ,
+                    pthread_attr_t attr;
+                    pthread_attr_init(&attr);
+                    pthread_attr_setdetachstate( &attr ,
 					     PTHREAD_CREATE_DETACHED);
-		pthread_create( &mDaqThread , NULL , 
-				daqThread , this );
+                    pthread_create( &mDaqThread , NULL ,
+                        daqThread , this );
 
-		m_Daq_start = clock();
-	      }
-	    
-	    break;
+                    m_Daq_start = clock();
+                }
+          }
+          break;
 	  }
-	case 4: // stop --------------------------------
+    case 3: // stop --------------------------------
 	  {
 	    if ( lock_isStarted )
 	      {
@@ -178,6 +181,25 @@ void CManager::CmdAnalyse()
 
 	    break;
 	  }
+    case 4:
+      {
+          if(lock_isStarted){
+              pDisplay->output("DAQ cycle is running now.Stop it first");
+          }
+          else{
+              if(!filename.empty()){
+                    stringstream ss;
+                    ss<<"WARNING: previous filename\""<<filename<<"\""
+                    <<" will be replaced";
+                    pDisplay->output(ss.str().c_str());
+                }
+                filename=pDisplay->getFilename();
+                stringstream ss;
+                ss<< "Data will be save to file: " << filename;
+                pDisplay->output(ss.str().c_str());
+          }
+          break;
+      }
 
 	}
 
@@ -186,15 +208,110 @@ void CManager::CmdAnalyse()
     }
 }
 
-
 bool CManager::daqCycle()
 {
-  m_hits =  pADC->DaqCycle( &lock_isStarted );
+  //init
+    daqInit();
+  //start stack execute
+    stackStart();
+  //open file
+  char buffer[6000];
+  int buffersize=6000;//ccusb need buffersize larger than the actual buffer length
+  int transferCount=0;
+  FILE* fp=fopen(filename.c_str(),"wb");
+  if(fp == NULL){
+      stringstream tempstr;
+      tempstr<<"can't open file: "<< filename;
+      pDisplay->output(tempstr.str().c_str());
+      return false;
+  }
+  int status;
+  int writeCount;
+  while(lock_isStarted){
+       status=pCCU->usbRead(buffer,buffersize,transferCount,3000);
+       if(status<0){
+           pDisplay->output("usbRead error!");
+           fclose(fp);
+           return false;
+       }
+       if(transferCount>0){
+           writeCount=fwrite(buffer,sizeof(char),transferCount,fp);
+           if(writeCount != transferCount){
+               pDisplay->output("data written error!");
+               fclose(fp);
+               return false;
+           }
+       }
+  }
+  //stop stack execute
+  stackStop();
+  //clean procedure
+  daqClear();
+  //read last buffer
+  transferCount=1;
+  while(transferCount>0){
+      status=pCCU->usbRead(buffer,buffersize,transferCount,1000);
+      if(status<0){
+          pDisplay->output("usbRead remaining error!");
+          fclose(fp);
+          return false;
+      }
+      if(transferCount>0){
+          writeCount=fwrite(buffer,sizeof(char),transferCount,fp);
+          if(writeCount != transferCount){
+              pDisplay->output("data written remaining error!");
+              fclose(fp);
+              return false;
+          }
+      }
+  }
 
-  //  cout<< n<<endl;
+  fclose(fp);
   return true;
 }
 
+void CManager::daqInit()
+{
+    //select event trigger as scalor_a trigger
+    //pCCU->writeDeviceSourceSelectors(0x4);
+    //enable scalor_a
+    pCCU->writeDeviceSourceSelectors(0x10);
+    //clear scalor_a
+    pCCU->writeDeviceSourceSelectors(0x20);
+
+    //eable LAM
+    int size=modules.size();
+    for(int i=0;i<size;i++){
+        modules[i]->enableLam();
+    }
+
+    return;
+}
+
+void CManager::daqClear()
+{
+    //disable scalor_a
+    pCCU->writeDeviceSourceSelectors(0x40);
+    //clear scalor_a
+    pCCU->writeDeviceSourceSelectors(0x20);
+    //disable LAM
+    int size=modules.size();
+    for(int i=0;i<size;i++){
+        modules[i]->disableLam();
+    }
+
+    return;
+}
+
+void CManager::stackStart()
+{
+    pCCU->writeActionRegister(0x1);
+}
+
+void CManager::stackStop()
+{
+    pCCU->writeActionRegister(0x0);
+}
 
 bool CManager::FirstLoad()
 {
@@ -217,7 +334,6 @@ bool CManager::FirstLoad()
   
   return true;
 }
-
 
 bool CManager::Config()
 {
@@ -252,17 +368,21 @@ bool CManager::Config()
     }
 
   // Config ADC ----------------------------
+  pCCU->z();
   delModules();
 
+  flag=true;
   NSCLmodule* tempmodule;
   int size=config_module.size();
   for(int i=0;i<size;i++){
       tempmodule=new NSCLmodule(pCCU);
-      tempmodule->config(*config_module[i]);
+      if(!tempmodule->config(*config_module[i])) {
+          flag=false;
+          break;
+      }
       modules.push_back(tempmodule);
   }
 
-  flag = pADC->config( config_adc ) ;
   if( true == flag )
     {
       CLog("Set ADC successfully");
@@ -275,7 +395,11 @@ bool CManager::Config()
       return false;
     }
 
+  // build stacklist and load
+  buildStack();
+  pCCU->loadList(0,stacklist);
   // Write the Configs of ADC to files ------------------------
+  /*
   sParm para[16];
   pADC->getParaRegAll( para );
   string paraStr;
@@ -301,11 +425,33 @@ bool CManager::Config()
 	}
       CLog( paraStr.c_str() );
     }
+*/
+  CC_Config cur_config_cc=pCCU->getConfig();
+  pDisplay->formCCU(cur_config_cc,config_module);
 
   return true;
-
 }
 
+bool CManager::buildStack()
+{
+    stacklist.clear();
+    //read Scalor_A
+    stacklist.addRead24(25,11,0);
+    //read DataMemory
+    int size,n,a,f;
+    uint16_t max=16;
+    size=modules.size();
+    for(int i=0;i<size;i++){
+        //qscan
+        n=modules[i]->getStation();a=0;f=0;
+        stacklist.addQScan(n,a,f,max,true);
+        //clear lam and data memory
+        a=3;f=11;
+        stacklist.addControl(n,a,f);
+    }
+    //add event terminator
+    stacklist.addWrite16(0,0,16,0xEEEE);
+}
 
 void CManager::welcome()
 {
@@ -315,7 +461,6 @@ void CManager::welcome()
        << "This is free software with ABSOLUTELY NO WARRANTY. " 
        << endl << endl;
 }
-
 
 bool CManager::CcusbDevFind()
 {
@@ -348,7 +493,6 @@ bool CManager::CcusbDevFind()
   return true;
 }
 
-
 bool CManager::CcusbDevOpen()
 {
   cout << "Press [Enter] to OPEN device listed... " << endl;
@@ -358,7 +502,6 @@ bool CManager::CcusbDevOpen()
 
   return true;
 }
-
 
 bool CManager::CcuLoad()
 {
@@ -557,14 +700,27 @@ bool CManager::ModuleLoad()
     return true;
 }
 
+bool CManager::CcudDefaultConfig()
+{
+    config_cc.clear();
+    //Global: 4096 buffer length,extra buffer header
+    config_cc.setGlobalMode(0x100);
+    //Delay:  100us LAM timeout,8us trigger delay
+    config_cc.setDelays(0x6408);
+    //DeviceSource: event trigger as scalor_a source
+    config_cc.setSelectUserDevice(0x4);
+
+    return true;
+}
+
 bool CManager::ConfigLoad()
 {
-  if(!CcuLoad())    return false;
+  //if(!CcuLoad())    return false;
+  if(!CcudDefaultConfig())  return false;
   if(!ModuleLoad()) return false;
 
   return true;
 }
-
 
 string CManager::getTimeStr()
 {
@@ -576,8 +732,6 @@ string CManager::getTimeStr()
   return std::string(str);
 
 }
-
-
 
 void* CManager::displayThread( void* args )
 {
@@ -601,9 +755,8 @@ void* CManager::displayThread( void* args )
 
     }
 
-  return NULL;
+  return;
 }
-
 
 void* CManager::daqThread( void* args )
 {
@@ -612,8 +765,9 @@ void* CManager::daqThread( void* args )
   pMan->lock_isDaqQuited = false;
 
   pMan->daqCycle();
-  pMan->lock_isStarted = false;
 
+  filename.clear();
+  pMan->lock_isStarted = false;
   pMan->lock_isDaqQuited = true;
 
   return NULL;

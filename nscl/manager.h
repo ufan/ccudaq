@@ -21,9 +21,6 @@ Wed May  8 14:13:23 2013  Take it from main.h
 #include "CCCUSBReadoutList.h"
 #include "display.h"
 
-typedef std::vector<Module_Config*> ModuleConfigFactory;
-typedef std::vector<NSCLmodule*>   ModuleFactory;
-
 class CManager
 {
  public:
@@ -32,11 +29,14 @@ class CManager
 
  private:
   std::string mVersion;  // Software Version Number
+  std::string filename;
+  std::string PMTdir;
 
   CCCUSB* pCCU;
   ModuleFactory modules;
   CC_Config config_cc;
   ModuleConfigFactory config_module;
+  CCCUSBReadoutList stacklist;
 
   CDisplay* pDisplay;
 
@@ -44,9 +44,11 @@ class CManager
   pthread_t mDaqThread;  // Thread for sending data to guests
 
   // public:
-  bool daqCycle();  // 
-
-
+  bool daqCycle();
+  void daqInit();
+  void daqClear();
+  void stackStart();
+  void stackStop();
 
 
  private:
@@ -55,8 +57,10 @@ class CManager
   bool CcusbDevFind();
   bool CcusbDevOpen();
   bool ConfigLoad();  // Load config file
+  bool CcudDefaultConfig();
   bool CcuLoad();
   bool ModuleLoad();
+  void buildStack();
   bool Config();  // Config CCU and ADC
   void delModules();
   void delModuleConfig();

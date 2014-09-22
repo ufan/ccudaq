@@ -179,6 +179,7 @@ public:
   }
 };
 
-
+typedef std::vector<Module_Config*> ModuleConfigFactory;
+typedef std::vector<NSCLmodule*>   ModuleFactory;
 #endif /* _CONFIG_H_ */
 

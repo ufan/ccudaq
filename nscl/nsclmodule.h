@@ -30,7 +30,9 @@ class NSCLmodule
 
  public:
   void setStation(int);
+  int getStation() {return mStation;}
   void setName(std::string);
+  std::string getName() {return mName;}
   //Global configuration
   bool config(Module_Config&);
   Module_Config getConfig();

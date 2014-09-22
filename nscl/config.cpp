@@ -5,7 +5,7 @@
 //CC_Config definition
 /////////////////////////////
 CC_Config::CC_Config():
-    GlobalMode(0),Delays(0),ScalReadCtrl(0),
+    GlobalMode(0x0),Delays(0x0),ScalReadCtrl(0x0),
     SelectLED(0),SelectNIMO(0),SelectUserDevice(0),
     TimingDGGA(0),TimingDGGB(0),ExtendedDelay(0),
     LAMMask(0),UsbBufferSetup(0)

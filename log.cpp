@@ -8,13 +8,29 @@
 
 #include "log.h"
 
-CLog::CLog( const char* str )
+CLog::CLog( const char* str ,bool isfirst)
 {
   logstr = str;
-  fp.open( fileChar.c_str() , ios::app );
+  if(isfirst){
+        fp.open(fileChar.c_str());
+  }
+  else{
+        fp.open( fileChar.c_str() , ios_base::app );
+  }
   assert( fp );
 }
 
+CLog::CLog( string str ,bool isfirst)
+{
+  logstr = str;
+  if(isfirst){
+        fp.open(fileChar.c_str());
+  }
+  else{
+        fp.open( fileChar.c_str() , ios_base::app );
+  }
+  assert( fp );
+}
 
 CLog::~CLog()
 {

@@ -18,7 +18,8 @@ using namespace std;
 class CLog
 {
  public:
-  CLog( const char* );
+  CLog( const char* str,bool isfirst=false);
+  CLog(string str,bool isfirst=false);
   virtual ~CLog();
 
  private:

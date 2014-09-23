@@ -86,5 +86,6 @@ private:
   bool getParaReg(int ,uint16_t&); //F(1)A(x)
 };
 
+typedef std::vector<NSCLmodule*>   ModuleFactory;
 #endif /* _NSCLMODULE_H_ */
 

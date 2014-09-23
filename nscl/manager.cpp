@@ -24,6 +24,8 @@ CManager::CManager()
   system("cls");
 
   mVersion = "0.1.1";  // Initialize Software version number
+  filename ="";
+  PMTdir="";
   welcome();
   
   lock_isStarted = false;
@@ -216,8 +218,8 @@ bool CManager::daqCycle()
     stackStart();
   //open file
   char buffer[6000];
-  int buffersize=6000;//ccusb need buffersize larger than the actual buffer length
-  int transferCount=0;
+  size_t buffersize=6000;//ccusb need buffersize larger than the actual buffer length
+  size_t transferCount=0;
   FILE* fp=fopen(filename.c_str(),"wb");
   if(fp == NULL){
       stringstream tempstr;
@@ -226,9 +228,9 @@ bool CManager::daqCycle()
       return false;
   }
   int status;
-  int writeCount;
+  size_t writeCount;
   while(lock_isStarted){
-       status=pCCU->usbRead(buffer,buffersize,transferCount,3000);
+       status=pCCU->usbRead(buffer,buffersize,&transferCount,3000);
        if(status<0){
            pDisplay->output("usbRead error!");
            fclose(fp);
@@ -250,7 +252,7 @@ bool CManager::daqCycle()
   //read last buffer
   transferCount=1;
   while(transferCount>0){
-      status=pCCU->usbRead(buffer,buffersize,transferCount,1000);
+      status=pCCU->usbRead(buffer,buffersize,&transferCount,1000);
       if(status<0){
           pDisplay->output("usbRead remaining error!");
           fclose(fp);
@@ -434,7 +436,7 @@ bool CManager::Config()
   return true;
 }
 
-bool CManager::buildStack()
+void CManager::buildStack()
 {
     stacklist.clear();
     //read Scalor_A
@@ -750,14 +752,14 @@ void* CManager::displayThread( void* args )
       if ( 2000 < ( now - start ) )
 	{
 	  start = clock();
-	  pMan->pDisplay->form( pMan->pADC , pMan->lock_isConfiged);
+      //pMan->pDisplay->form( pMan->pADC , pMan->lock_isConfiged);
 
 	  pMan->lock_isConfiged = false;
 	}
 
     }
 
-  return;
+  return NULL;
 }
 
 void* CManager::daqThread( void* args )
@@ -768,7 +770,7 @@ void* CManager::daqThread( void* args )
 
   pMan->daqCycle();
 
-  filename.clear();
+  pMan->filename.clear();
   pMan->lock_isStarted = false;
   pMan->lock_isDaqQuited = true;
 

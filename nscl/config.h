@@ -13,11 +13,10 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 #define CC_ConfigPath "cc.conf"
 #define ADC_ConfigPath "adc.conf"
-
-class CDisplay;
 
 class CC_Config
 {
@@ -26,7 +25,7 @@ public:
     CC_Config(const CC_Config&);
     ~CC_Config();
     CC_Config& operator=(const CC_Config&);
-    bool operator==(const CC_Config&,const CC_Config&);
+    bool operator==(const CC_Config&);
 
 private:
   uint16_t GlobalMode;
@@ -43,7 +42,6 @@ private:
 
 public:
   void dump();
-  void dump(CDisplay*);
   void dump(std::string&);
   void clear();
 
@@ -56,7 +54,7 @@ public:
   inline void setDelays(uint16_t value){
       Delays=value;
   }
-  inline uint_16 getDelays(){
+  inline uint16_t getDelays(){
       return Delays;
   }
   inline void setScalReadCtrl(uint32_t value){
@@ -123,7 +121,7 @@ public:
     ~Module_Config();
 
     Module_Config& operator=(const Module_Config&);
-    bool operator==(const Module_Config&,const Module_Config&);
+    bool operator==(const Module_Config&);
 
 private:
   uint16_t UT[16];
@@ -135,7 +133,6 @@ private:
 
 public:
   void dump();
-  void dump(CDisplay*);
   void dump(std::string&);
 
   inline void setName(std::string value){
@@ -180,6 +177,5 @@ public:
 };
 
 typedef std::vector<Module_Config*> ModuleConfigFactory;
-typedef std::vector<NSCLmodule*>   ModuleFactory;
 #endif /* _CONFIG_H_ */
 

@@ -1,5 +1,4 @@
 #include "config.h"
-#include "../display.h"
 
 /////////////////////////////
 //CC_Config definition
@@ -52,31 +51,25 @@ CC_Config::operator=(const CC_Config& rhs)
 }
 
 bool
-CC_Config::operator ==(const CC_Config& lhs,const CC_Config& rhs)
+CC_Config::operator ==(const CC_Config& rhs)
 {
-    if(lhs.GlobalMode != rhs.GlobalMode)        return false;
-    if(lhs.Delays != rhs.Delays)                return false;
-    if(lhs.ScalReadCtrl != rhs.ScalReadCtrl)    return false;
-    if(lhs.SelectLED != rhs.SelectLED)          return false;
-    if(lhs.SelectNIMO != rhs.SelectNIMO)        return false;
-    if(lhs.SelectUserDevice != rhs.SelectUserDevice) return false;
-    if(lhs.TimingDGGA != rhs.TimingDGGA)        return false;
-    if(lhs.TimingDGGB != rhs.TimingDGGB)        return false;
-    if(lhs.ExtendedDelay != rhs.ExtendedDelay)  return false;
-    if(lhs.LAMMask != rhs.LAMMask)              return false;
-    if(lhs.UsbBufferSetup != rhs.UsbBufferSetup)    return false;
+    if(GlobalMode != rhs.GlobalMode)        return false;
+    if(Delays != rhs.Delays)                return false;
+    if(ScalReadCtrl != rhs.ScalReadCtrl)    return false;
+    if(SelectLED != rhs.SelectLED)          return false;
+    if(SelectNIMO != rhs.SelectNIMO)        return false;
+    if(SelectUserDevice != rhs.SelectUserDevice) return false;
+    if(TimingDGGA != rhs.TimingDGGA)        return false;
+    if(TimingDGGB != rhs.TimingDGGB)        return false;
+    if(ExtendedDelay != rhs.ExtendedDelay)  return false;
+    if(LAMMask != rhs.LAMMask)              return false;
+    if(UsbBufferSetup != rhs.UsbBufferSetup)    return false;
 
     return true;
 }
 
 void
 CC_Config::dump()
-{
-
-}
-
-void
-CC_Config::dump(CDisplay* pDisplay)
 {
 
 }
@@ -144,15 +137,15 @@ Module_Config::operator =(const Module_Config& rhs)
 }
 
 bool
-Module_Config::operator ==(const Module_Config& lhs,const Module_Config& rhs)
+Module_Config::operator ==(const Module_Config& rhs)
 {
-    if(lhs.Ctrl != rhs.Ctrl)        return false;
-    if(lhs.station != rhs.station)  return false;
-    if(lhs.name != rhs.name)        return false;
+    if(Ctrl != rhs.Ctrl)        return false;
+    if(station != rhs.station)  return false;
+    if(name != rhs.name)        return false;
     for(int i=0;i<16;i++){
-        if(lhs.LT[i] != rhs.LT[i])  return false;
-        if(lhs.UT[i] != rhs.UT[i])  return false;
-        if(lhs.PED[i] != rhs.PED[i])  return false;
+        if(LT[i] != rhs.LT[i])  return false;
+        if(UT[i] != rhs.UT[i])  return false;
+        if(PED[i] != rhs.PED[i])  return false;
     }
 
     return true;
@@ -164,11 +157,6 @@ Module_Config::dump()
 
 }
 
-void
-Module_Config::dump(CDisplay* pDisplay)
-{
-
-}
 
 void
 Module_Config::dump(std::string& tempstr)

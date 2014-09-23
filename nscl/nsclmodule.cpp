@@ -1,5 +1,5 @@
 #include <sstream>
-#include "nsclmodul.h"
+#include "nsclmodule.h"
 #include "CCCUSB.h"
 
 using namespace std;
@@ -11,7 +11,7 @@ NSCLmodule::NSCLmodule(CCCUSB *ccusb)
     mCcu=ccusb;
 }
 
-NSCLmodule::NSCLmodule(CCCUSB *ccusb, int value):
+NSCLmodule::NSCLmodule(CCCUSB *ccusb, int value)
 {
     stringstream ss;
     ss << "unamed_station_" <<value;

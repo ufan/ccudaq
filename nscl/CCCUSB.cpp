@@ -310,9 +310,6 @@ the operation.
 int
 CCCUSB::simpleWrite16(int n, int a, int f, uint16_t data, uint16_t& qx)
 {
-  CCCUSBReadoutList l;
-  size_t            nRead;
-
 
   return write16(n,a,f, data, qx); // validatees naf.
 }
@@ -339,10 +336,6 @@ CCCUSB::simpleWrite16(int n, int a, int f, uint16_t data, uint16_t& qx)
 int
 CCCUSB::simpleWrite24(int n, int a, int f, uint32_t data, uint16_t& qx)
 {
-  CCCUSBReadoutList l;
-  size_t            nRead;
-
-
   return write32(n,a,f, data, qx);
 }
 /************************************************************************/
@@ -1164,7 +1157,7 @@ CCCUSB::loadList(uint8_t  listNumber, CCCUSBReadoutList& list,bool fcheck)
       if(status != packetSize)
           return -3;
       else{
-        for(int i=0;i<packetSize;i++){
+        for(size_t i=0;i<packetSize;i++){
             if(buffer[i] != poutPacket[i])
                 return -3;
         }
@@ -1198,10 +1191,10 @@ CCCUSB::readList(uint8_t listNumber, void *pReadBuffer, size_t readBufferSize)
     char outPacket[4];
     char* pOut=outPacket;
     if (listNumber == 0) {
-      pOut=static_cast<char*>(addToPacket16(TAVcsDATA));
+      pOut=static_cast<char*>(addToPacket16(pOut,TAVcsDATA));
     }
     else if (listNumber == 1) {
-      pOut=static_cast<char*>(addToPacket16(TAVcsSCALER));
+      pOut=static_cast<char*>(addToPacket16(pOut,TAVcsSCALER));
     }
     else {
       return -4;
@@ -1343,7 +1336,7 @@ void dumpWords(void* pWords, size_t readSize)
   uint16_t* s = reinterpret_cast<uint16_t*>(pWords);
 
  
-  for (int i =0; i < readSize; i++) {
+  for (unsigned int i =0; i < readSize; i++) {
     fprintf(stderr, "%04x ", *s++);
     if (((i % 8) == 0) && (i != 0)) {
       fprintf(stderr, "\n");
@@ -1630,7 +1623,7 @@ CCCUSB::openUsb(bool useSerialNo)
       throw msg;
   }
   if(useSerialNo){
-    for (int i = 0; i < devices.size(); i++) {
+    for (unsigned int i = 0; i < devices.size(); i++) {
         if (serialNo(devices[i]) == m_serial) {
             m_device = devices[i];
             break;

@@ -8,7 +8,6 @@
 #include "config.h"
 #include "curses.h"
 #include <string>
-#include "adc.h"
 
 using namespace std;
 

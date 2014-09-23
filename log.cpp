@@ -6,6 +6,7 @@
 	
 ****************************************************/
 
+#include "global.h"
 #include "log.h"
 
 CLog::CLog( const char* str ,bool isfirst)

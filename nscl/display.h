@@ -27,7 +27,6 @@ class CDisplay
   string getFilename();
 
  private:
-  sParm mPara[16];
   string filename;
   string PMTdir;
 

@@ -398,6 +398,7 @@ bool CManager::Config()
   // build stacklist and load
   buildStack();
   pCCU->loadList(0,stacklist);
+
   // Write the Configs of ADC to files ------------------------
   /*
   sParm para[16];
@@ -426,6 +427,7 @@ bool CManager::Config()
       CLog( paraStr.c_str() );
     }
 */
+  //display config
   CC_Config cur_config_cc=pCCU->getConfig();
   pDisplay->formCCU(cur_config_cc,config_module);
 

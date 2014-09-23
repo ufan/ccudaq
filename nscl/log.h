@@ -9,7 +9,6 @@
 #ifndef _LOG_H_
 #define _LOG_H_
 
-#include "global.h"
 #include <fstream>
 #include <string>
 

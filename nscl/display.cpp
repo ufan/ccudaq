@@ -10,13 +10,6 @@
 
 CDisplay::CDisplay()
 {
-  for (int i = 0; i < 16; ++i)
-    {
-      mPara[i].LT = 0;
-      mPara[i].UT = 0;
-      mPara[i].PED = 0;
-    }
-
   initscr();
   resize_term(38,80);
 
@@ -74,7 +67,43 @@ void CDisplay::formSingleModule(Module_Config& config)
 
 void CDisplay::formCCU(CC_Config &config_ccu, ModuleConfigFactory &config_modules)
 {
+    wclear(form_win);
 
+    wattron(form_win,A_REVERSE);
+    mvwprintw(form_win , 1 , 1 ,
+           "     CCUSB & Module Configurations    ");
+    wattroff(form_win,A_REVERSE);
+
+    //CC-USB
+    wattron(form_win,A_REVERSE);
+    mvwprintw(form_win,3,2,"CC-USB register:");
+    wattroff(form_win,A_REVERSE);
+    mvwprintw(form_win,5,2,"GlobalMode\t\t\t0x%-8x",config_ccu.getGlobalMode());
+    mvwprintw(form_win,7,2,"Delays\t\t\t0x%-8x",config_ccu.getDelays());
+    mvwprintw(form_win,9,2,"ScalReadCtrl\t\t\t0x%-8x",config_ccu.getScalReadCtrl());
+    mvwprintw(form_win,11,2,"SelectLED\t\t\t0x%-8x",config_ccu.getSelectLED());
+    mvwprintw(form_win,13,2,"SelectNIM\t\t\t0x%-8x",config_ccu.getSelectNIMO());
+    mvwprintw(form_win,15,2,"SelectUserDev\t\t\t0x%-8x",config_ccu.getSelectUserDevice());
+    mvwprintw(form_win,17,2,"DGGA\t\t\t0x%-8x",config_ccu.getTimingDGGA());
+    mvwprintw(form_win,19,2,"DGGB\t\t\t0x%-8x",config_ccu.getTimingDGGB());
+    mvwprintw(form_win,21,2,"ExtDGG\t\t\t0x%-8x",config_ccu.getExtendedDelay());
+    mvwprintw(form_win,23,2,"LAMMask\t\t\t0x%-8x",config_ccu.getLAMMask());
+    mvwprintw(form_win,25,2,"UsbBufferSetup\t\t\t0x%-8x",config_ccu.getUsbBufferSetup());
+
+    //Modules Summary
+    int size=config_modules.size();
+    wattron(form_win,A_REVERSE);
+    mvwprintw(form_win,28,2,"%-2d Modules in this crate:",size);
+    wattroff(form_win,A_REVERSE);
+    string name;
+    int station;
+    for(int i=0;i<size;i++){
+        name=config_modules[i]->getName();
+        station=config_modules[i]->getStation();
+        mvwprintw(form_win,30+i*2,2,"Station_%-2d: %-10s",station,name.c_str());
+    }
+
+    wrefresh(form_win);
 }
 
 void CDisplay::form()

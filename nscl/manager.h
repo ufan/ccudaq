@@ -72,6 +72,7 @@ class CManager
   bool lock_isStarted;
   bool lock_isConfiged;
   bool lock_isDaqQuited;
+  bool isPMT;
   unsigned int m_hits;
 
   clock_t m_Daq_start, m_Daq_stop;

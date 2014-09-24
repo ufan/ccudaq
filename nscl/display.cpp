@@ -7,18 +7,38 @@
 ****************************************************/
 
 #include "display.h"
+#include "../pdcurses/include/curses.h"
 
-CDisplay::CDisplay()
+std::string  CDisplay::PMT_prompt="pmt_$$";
+std::string CDisplay::Normal_prompt=">>";
+
+CDisplay::CDisplay():
+    isPMT(false)
 {
   initscr();
-  resize_term(40,80);
-
-  form_win = newwin(40,40,0,0);
-  prompt_win = newwin(8,40,0,40);
-  command_win = newwin(32,40,8,40);
+  //init color pairs
+  {
+          start_color();
+          init_pair(1, COLOR_RED,     COLOR_BLACK);
+          init_pair(2, COLOR_GREEN,   COLOR_BLACK);
+          init_pair(3, COLOR_YELLOW,  COLOR_BLACK);
+          init_pair(4, COLOR_BLUE,    COLOR_BLACK);
+          init_pair(5, COLOR_CYAN,    COLOR_BLACK);
+          init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
+          init_pair(7, COLOR_WHITE,   COLOR_BLACK);
+ }
+  //terminal sizes,
+  //it is hard-coded now.may be better to be parametrized
+  resize_term(60,80);
+  status_win=newwin(20,40,0,0);
+  form_win = newwin(40,40,20,0);
+  prompt_win = newwin(20,40,0,40);
+  command_win = newwin(40,40,20,40);
 
   box(form_win,0,0);
 
+  //initial printing
+  normal_status(true,NULL,NULL);
   form();
   prompt();
   output("Program Started.");
@@ -28,6 +48,208 @@ CDisplay::CDisplay()
 CDisplay::~CDisplay()
 {
   endwin();
+}
+
+//filename: data saved into this file
+//info: user-defined content, usually buffers transfered,event counts,waiting...
+void CDisplay::normal_status(bool IsIdle,char* filename,char* info)
+{
+    wclear(status_win);
+    //header
+    wattron(status_win,A_REVERSE);
+    mvwprintw(status_win,1,1,"      Status Information      ");
+    wattroff(status_win,A_REVERSE);
+    //mode
+    if(IsIdle){
+        wattron(status_win,COLOR_PAIR(4));
+        mvwprintw(status_win,2,1,"Mode: normal\t\t\tStatus: idle");
+        wattroff(status_win,COLOR_PAIR(4));
+        //filename
+        if(filename){
+            //filename
+            mvwprintw(status_win,4,1,"FileName: %s",filename);
+            mvwprintw(status_win,6,1,"Info:");
+            mvwprintw(status_win,7,1,"No DAQ Cycle Running.");
+        }
+        else{
+            //other info
+            mvwprintw(status_win,4,1,"Info:");
+            mvwprintw(status_win,5,1,"No DAQ Cycle Running");
+        }
+    }
+    else{
+        wattron(status_win,COLOR_PAIR(4));
+        mvwprintw(status_win,2,1,"Mode: normal\t\t\tStatus: DAQ Cycle");
+        wattroff(status_win,COLOR_PAIR(4));
+        //filename
+        mvwprintw(status_win,4,1,"FileName: %s",filename);
+        //other info
+        mvwprintw(status_win,6,1,"Info:");
+        mvwprintw(status_win,7,1,"%s",info);
+    }
+
+    wrefresh(status_win);
+}
+
+//pulser_status,hv_status: -1 can't connected,0 unconnected, 1 connected
+//testDir: pmt testing dir
+//output: user-defined output content, usually HV_Step, LED_config...
+void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,char* testDir,char* output)
+{
+    wclear(status_win);
+   //header
+    wattron(status_win,A_REVERSE);
+    mvwprintw(status_win,1,1,"      Status Information      ");
+    wattroff(status_win,A_REVERSE);
+
+    if(IsIdle){
+        //mode
+        wattron(status_win,COLOR_PAIR(4));
+        mvwprintw(status_win,2,1,"Mode: PMT\t\t\tStatus: Idle");
+        wattroff(status_win,COLOR_PAIR(4));
+        //pulser
+        switch(pulser_status)
+        {
+        case 0:
+        {
+            mvwprintw(status_win,3,1,"LED Pulser: ");
+            wattron(status_win,A_BLINK);
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK);
+            wprintw(status_win,"\t\t");
+            break;
+        }
+        case -1:
+        {
+            mvwprintw(status_win,3,1,"LED Pulser: ");
+            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            wprintw(status_win,"\t\t");
+            break;
+        }
+        case 1:
+        {
+            mvwprintw(status_win,3,1,"LED Pulser: ");
+            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            wprintw(status_win,"\t\t");
+            break;
+        }
+        }
+        //hv
+        switch(hv_status)
+        {
+        case 0:
+        {
+            wprintw(status_win,"SY1527: ");
+            wattron(status_win,A_BLINK);
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK);
+            //wprintw(status_win,"\t\t");
+            break;
+        }
+        case -1:
+        {
+            wprintw(status_win,"SY1527: ");
+            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            //wprintw(status_win,"\t\t");
+            break;
+        }
+        case 1:
+        {
+            wprintw(status_win,"SY1527: ");
+            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            //wprintw(status_win,"\t\t");
+            break;
+        }
+        }
+        //test dir
+        mvwprintw(status_win,5,1,"Testing Dir:  NULL");
+        //other info
+        mvwprintw(status_win,7,1,"Info:");
+        mvwprintw(status_win,8,1,"%s",output);
+    }
+    else{
+        //mode
+        wattron(status_win,COLOR_PAIR(4));
+        mvwprintw(status_win,2,1,"Mode: PMT\t\t\tStatus: BUSY");
+        wattroff(status_win,COLOR_PAIR(4));
+        //pulser
+        switch(pulser_status)
+        {
+        case 0:
+        {
+            mvwprintw(status_win,3,1,"LED Pulser: ");
+            wattron(status_win,A_BLINK);
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK);
+            wprintw(status_win,"\t\t");
+            break;
+        }
+        case -1:
+        {
+            mvwprintw(status_win,3,1,"LED Pulser: ");
+            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            wprintw(status_win,"\t\t");
+            break;
+        }
+        case 1:
+        {
+            mvwprintw(status_win,3,1,"LED Pulser: ");
+            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            wprintw(status_win,"\t\t");
+            break;
+        }
+        }
+        //hv
+        switch(hv_status)
+        {
+        case 0:
+        {
+            wprintw(status_win,"SY1527: ");
+            wattron(status_win,A_BLINK);
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK);
+            //wprintw(status_win,"\t\t");
+            break;
+        }
+        case -1:
+        {
+            wprintw(status_win,"SY1527: ");
+            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            //wprintw(status_win,"\t\t");
+            break;
+        }
+        case 1:
+        {
+            wprintw(status_win,"SY1527: ");
+            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            waddch(status_win,ACS_BLOCK);
+            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            //wprintw(status_win,"\t\t");
+            break;
+        }
+        }
+        //test dir
+        mvwprintw(status_win,5,1,"Testing Dir:  %s",testDir);
+        //other info
+        mvwprintw(status_win,7,1,"Info:");
+        mvwprintw(status_win,8,1,"%s",output);
+    }
+
+    wrefresh(status_win);
 }
 
 void CDisplay::output( string str )
@@ -135,9 +357,6 @@ void CDisplay::prompt()
 	     "               Command               " );
   wattroff(prompt_win,A_REVERSE);
 
-  start_color();
-  init_pair(1,COLOR_RED,COLOR_BLACK);
-
   // config
   mvwprintw(prompt_win,3,1,"Type ");
   wattron(prompt_win,COLOR_PAIR(1));
@@ -160,7 +379,7 @@ void CDisplay::prompt()
   mvwprintw(prompt_win,5,1,"Type ");
   wattron(prompt_win,COLOR_PAIR(1));
   wattron(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,5,6,"go ");
+  mvwprintw(prompt_win,5,6,"start ");
   wattroff(prompt_win,COLOR_PAIR(1));
   wattroff(prompt_win,A_UNDERLINE);
   mvwprintw(prompt_win,5,12," to Start DAQ cycle");
@@ -188,28 +407,66 @@ void CDisplay::prompt()
 
 int CDisplay::getCmd()
 {
-  wprintw(command_win,">> ");
+    if(isPMT){
+        wprintw(command_win,"%s ",PMT_prompt.c_str());
+    }
+    else{
+        wprintw(command_win,"%s ",Normal_prompt.c_str());
+    }
+
   char ch[100];
 
   wgetstr(command_win,ch);
   string str(ch);
 
-  if( 0 == str.compare("config") )
+  if( 0 == str.compare("config") ){
     return 1;
-  else if( 0 == str.compare("go") )
-    return 2;
-  else if( 0 == str.compare("stop") )
-    return 3;
-  else if( 0 == str.compare("open")){
-      wprintw(command_win,"input: ");
-      wgetstr(command_win,ch);
-      filename=ch;
-      return 4;
   }
-  else if( 0 == str.compare("quit") )
+  else if( 0 == str.compare("start") ){
+    return 2;
+  }
+  else if( 0 == str.compare("stop") ){
+    return 3;
+  }
+  else if( 0 == str.compare("open")){
+      if(isPMT){
+        return -1;
+      }
+      else{
+        wprintw(command_win,"input: ");
+        wgetstr(command_win,ch);
+        filename=ch;
+        return 4;
+      }
+  }
+  else if( 0 == str.compare("show_ccu")){
+
+  }
+  else if( 0 == str.compare("show_module")){
+
+  }
+  else if( 0 == str.compare("quit") ){
     return 0;
-  else
+  }
+  else if(0 == str.compare("pmt")){
+
+  }
+  else if(0 == str.compare("exit")){
+
+  }
+  else if(0 == str.compare("mkdir")){
+
+  }
+  else if(0 == str.compare("setdir")){
+
+  }
+  else if(0 == str.compare("connect")){
+
+  }
+  else{
     return -1;
+  }
+
 }
 
 string CDisplay::getFilename()

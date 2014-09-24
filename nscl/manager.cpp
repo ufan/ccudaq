@@ -32,6 +32,7 @@ CManager::CManager()
   lock_isConfiged = true;
   lock_isDaqQuited = true;
 
+  isPMT=false;
   m_hits = -1;
   pDisplay = NULL;
   pCCU = NULL;
@@ -89,7 +90,10 @@ void CManager::CmdAnalyse()
 	{
 	case -1: // error commands ---------------------
 	  {
-	    pDisplay->output("Error Command used.");
+          if(isPMT)
+                pDisplay->output("Error Command.You're in PMT mode.");
+          else
+                pDisplay->output("Error Command.You're in Normal mode");
 	    break;
 	  }
 	case 0:  // quit -------------------------------
@@ -98,38 +102,39 @@ void CManager::CmdAnalyse()
 
         Sleep(1000);
 	    CLog("Quit. ");
-	    return;
 	    break;
 	  }
 	case 1:  // config -----------------------------
 	  {
 	    if ( true == lock_isStarted )
 	      {
-		pDisplay->output("Can't config while running. ");
+            pDisplay->output("Can't config while running. ");
 	      }
 	    else
 	      {
-		if ( true == Config() )
+            if ( true == Config() )
 		  {
             pDisplay->output("Config Done. ");
 		    lock_isConfiged = true;
 		  }
-		else
+            else
 		  {
 		    pDisplay->output("Config Failed. ");
 		    return;
 		  }
 	      }
-
 	    break;
 	  }
-
     case 2:  // start daq cycle ---------------------
 	  {
-          if(filename.empty()){
-                pDisplay->output("Please set the output filename first");
+          if(isPMT){
+
           }
           else{
+            if(filename.empty()){
+                pDisplay->output("Please set the output filename first");
+            }
+            else{
                 pDisplay->output("DAQ cycle is going to start.");
 
                 if ( true == lock_isStarted )
@@ -139,6 +144,8 @@ void CManager::CmdAnalyse()
                 else
                 {
                     lock_isStarted = true;
+                    pDisplay->output("DAQ cycle is started.");
+                    pDisplay->normal_status(false,filename.c_str(),"DAQ cycle is started.");
 
                     pthread_attr_t attr;
                     pthread_attr_init(&attr);
@@ -149,31 +156,37 @@ void CManager::CmdAnalyse()
 
                     m_Daq_start = clock();
                 }
+            }
           }
           break;
 	  }
     case 3: // stop --------------------------------
 	  {
-	    if ( lock_isStarted )
-	      {
-		lock_isStarted = false;
-		pDisplay->output("Waitting for DAQ quiting... ");
-		while( false == lock_isDaqQuited );
+          if(isPMT){
 
-		m_Daq_stop = clock();
-		pDisplay->output("DAQ Stoped. ");
+          }
+          else{
+            if ( lock_isStarted )
+            {
+                lock_isStarted = false;
+                pDisplay->output("Waitting for DAQ quiting... ");
+                pDisplay->normal_status(false,filename.c_str(),"Waitting for DAQ quiting... ");
+                while( false == lock_isDaqQuited );
 
-		double time = (double)( m_Daq_stop - m_Daq_start )
-		  /(double)CLOCKS_PER_SEC;
+                m_Daq_stop = clock();
+                pDisplay->output("DAQ Stoped. ");
 
-		char buf1[100];
-		pDisplay->output( "Statistics during last DAQ:" );  
-		sprintf( buf1 , "    time = %f s" , time);
-		pDisplay->output( buf1 );
+                double time = (double)( m_Daq_stop - m_Daq_start )
+                                        /(double)CLOCKS_PER_SEC;
 
-		char buf2[100];
-		sprintf( buf2 , "    hits = %d " , m_hits);
-		pDisplay->output( buf2 );
+                char buf1[100];
+                pDisplay->output( "Statistics during last DAQ:" );
+                sprintf( buf1 , "    time = %f s" , time);
+                pDisplay->output( buf1 );
+
+                char buf2[100];
+                sprintf( buf2 , "    hits = %d " , m_hits);
+                pDisplay->output( buf2 );
 
         //close(slisten);
 	      }
@@ -182,7 +195,7 @@ void CManager::CmdAnalyse()
 		pDisplay->output("No DAQ running. ");
      
 	      }
-
+        }
 	    break;
 	  }
     case 4:

@@ -170,11 +170,13 @@ void CManager::CmdAnalyse()
             {
                 lock_isStarted = false;
                 pDisplay->output("Waitting for DAQ quiting... ");
-                pDisplay->normal_status(false,filename.c_str(),"Waitting for DAQ quiting... ");
+                //pDisplay->normal_status(false,filename.c_str(),"Waitting for DAQ quiting... ");
                 while( false == lock_isDaqQuited );
 
+                string tempstr;
                 m_Daq_stop = clock();
                 pDisplay->output("DAQ Stoped. ");
+                tempstr="DAQ stopped successfully\n ";
 
                 double time = (double)( m_Daq_stop - m_Daq_start )
                                         /(double)CLOCKS_PER_SEC;
@@ -183,17 +185,18 @@ void CManager::CmdAnalyse()
                 pDisplay->output( "Statistics during last DAQ:" );
                 sprintf( buf1 , "    time = %f s" , time);
                 pDisplay->output( buf1 );
+                tempstr.append(buf1);
+                tempstr+="\n ";
 
                 char buf2[100];
                 sprintf( buf2 , "    hits = %d " , m_hits);
                 pDisplay->output( buf2 );
-
-        //close(slisten);
+                tempstr+=buf2;
+                pDisplay->normal_status(true,NULL,tempstr.c_str());
 	      }
-	    else
+          else
 	      {
-		pDisplay->output("No DAQ running. ");
-     
+                pDisplay->output("No DAQ running. ");
 	      }
         }
 	    break;
@@ -204,16 +207,21 @@ void CManager::CmdAnalyse()
               pDisplay->output("DAQ cycle is running now.Stop it first");
           }
           else{
+              string tempstr;
               if(!filename.empty()){
                     stringstream ss;
                     ss<<"WARNING: previous filename\""<<filename<<"\""
                     <<" will be replaced";
                     pDisplay->output(ss.str().c_str());
+                    tempstr=ss.str();
+                    tempstr.append("\n ");
                 }
                 filename=pDisplay->getFilename();
                 stringstream ss;
                 ss<< "Data will be save to file: " << filename;
                 pDisplay->output(ss.str().c_str());
+                tempstr.append(ss.str());
+                pDisplay->normal_status(true,filename.c_str(),tempstr.c_str());
           }
           break;
       }

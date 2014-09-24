@@ -217,6 +217,7 @@ private:
     int write32(int n, int a, int f, uint32_t data, uint16_t& qx);
     int write16(int n, int a, int f, uint16_t data, uint16_t& qx); /*  just for register writes */
 
+    void resetUsb();
     void openUsb(bool useSerialNo=false);
 
 

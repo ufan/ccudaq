@@ -40,7 +40,7 @@ CManager::CManager()
     {
       pDisplay = new CDisplay();
       Config();
-      pthread_create( &mDisplayThread , NULL , displayThread , this );
+      //pthread_create( &mDisplayThread , NULL , displayThread , this );
 
       CmdAnalyse();
     }
@@ -65,6 +65,7 @@ CManager::delModules()
             delete modules[i];
         }
     }
+    modules.clear();
 }
 
 void
@@ -76,6 +77,7 @@ CManager::delModuleConfig()
             delete config_module[i];
         }
     }
+    config_module.clear();
 }
 
 void CManager::CmdAnalyse()
@@ -217,8 +219,8 @@ bool CManager::daqCycle()
   //start stack execute
     stackStart();
   //open file
-  char buffer[6000];
-  size_t buffersize=6000;//ccusb need buffersize larger than the actual buffer length
+  char buffer[4096*2];
+  size_t buffersize=4096*2;//ccusb need buffersize larger than the actual buffer length
   size_t transferCount=0;
   FILE* fp=fopen(filename.c_str(),"wb");
   if(fp == NULL){
@@ -230,44 +232,41 @@ bool CManager::daqCycle()
   int status;
   size_t writeCount;
   while(lock_isStarted){
-       status=pCCU->usbRead(buffer,buffersize,&transferCount,3000);
+       status=pCCU->usbRead(buffer,buffersize,&transferCount);
        if(status<0){
-           pDisplay->output("usbRead error!");
-           fclose(fp);
-           return false;
+           pDisplay->output("waiting data...");
        }
        if(transferCount>0){
            writeCount=fwrite(buffer,sizeof(char),transferCount,fp);
            if(writeCount != transferCount){
-               pDisplay->output("data written error!");
+               pDisplay->output("data written error, DAQ cycle terminated!");
                fclose(fp);
+               stackStop();
+               while(transferCount>0){
+                   status=pCCU->usbRead(buffer,buffersize,&transferCount,3000);
+               }
+               daqClear();
                return false;
            }
        }
   }
   //stop stack execute
   stackStop();
-  //clean procedure
-  daqClear();
-  //read last buffer
+  //read remaining packets
   transferCount=1;
   while(transferCount>0){
-      status=pCCU->usbRead(buffer,buffersize,&transferCount,1000);
-      if(status<0){
-          pDisplay->output("usbRead remaining error!");
-          fclose(fp);
-          return false;
-      }
+      status=pCCU->usbRead(buffer,buffersize,&transferCount,3000);
       if(transferCount>0){
           writeCount=fwrite(buffer,sizeof(char),transferCount,fp);
           if(writeCount != transferCount){
-              pDisplay->output("data written remaining error!");
-              fclose(fp);
-              return false;
+              pDisplay->output("CAUTION!: data written remaining error!");
           }
       }
   }
+  //clean procedure
+  daqClear();
 
+  //close file
   fclose(fp);
   return true;
 }

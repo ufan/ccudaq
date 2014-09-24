@@ -285,6 +285,36 @@ CCCUSB::writeActionRegister(uint16_t value)
 	throw "usb_bulk_write wrote different size than expected";
     }
 }
+
+void
+CCCUSB::resetUsb()
+{
+    char outPacket[100];
+
+
+    // Build up the output packet:
+
+    char* pOut = outPacket;
+
+    pOut = static_cast<char*>(addToPacket16(pOut, 5)); // Select Register block for transfer.
+    pOut = static_cast<char*>(addToPacket16(pOut, 10)); // Select action register wthin block.
+    pOut = static_cast<char*>(addToPacket16(pOut, 0x04));
+
+    // This operation is write only.
+
+    int outSize = pOut - outPacket;
+    int status = usb_bulk_write(m_handle, ENDPOINT_OUT,
+                outPacket, outSize, m_timeout);
+    if (status < 0) {
+    string message = "Error in usb_bulk_write, writing action register ";
+    message += strerror(-status);
+    throw message;
+    }
+    if (status != outSize) {
+    throw "usb_bulk_write wrote different size than expected";
+    }
+}
+
 /********************************************************************************/
 /*!
   Do a simple 16 bit write to CAMAC.   This is really done
@@ -1654,6 +1684,7 @@ CCCUSB::openUsb(bool useSerialNo)
     usb_clear_halt(m_handle, ENDPOINT_IN);
     usb_clear_halt(m_handle, ENDPOINT_OUT);
    
+    resetUsb();
     //usleep(100);
     Sleep(1);
 }

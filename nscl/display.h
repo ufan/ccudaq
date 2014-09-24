@@ -26,10 +26,13 @@ class CDisplay
   void form();
   int getCmd();
   string getFilename();
+  string getPMTdir();
+  string getModulename();
 
  private:
   string filename;
   string PMTdir;
+  string module_name;
   static string PMT_prompt;
   static string Normal_prompt;
 

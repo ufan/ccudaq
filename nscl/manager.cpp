@@ -87,7 +87,7 @@ void CManager::CmdAnalyse()
     {
       int flag = pDisplay->getCmd();
       switch( flag )
-	{
+        {
 	case -1: // error commands ---------------------
 	  {
           if(isPMT)
@@ -201,7 +201,7 @@ void CManager::CmdAnalyse()
         }
 	    break;
 	  }
-    case 4:
+        case 4:
       {
           if(lock_isStarted){
               pDisplay->output("DAQ cycle is running now.Stop it first");
@@ -225,8 +225,63 @@ void CManager::CmdAnalyse()
           }
           break;
       }
-
+      case 5:
+      {
+        if(lock_isStarted){
+            pDisplay->output("DAQ cycle is running now.Stop it first");
+        }
+        else{
+            CC_Config cur_config_cc;
+            cur_config_cc=pCCU->getConfig();
+            pDisplay->formCCU(cur_config_cc,config_module);
+        }
+        break;
+      }
+      case 6:
+      {
+          if(lock_isStarted){
+              pDisplay->output("DAQ cycle is running now.Stop it first");
+          }
+          else{
+              Module_Config cur_module_config;
+              string tempstr;
+              string module_name=pDisplay->getModulename();
+              int size=modules.size();
+              for(int i=0;i<size;i++){
+                  tempstr=modules[i].getName();
+                  if(tempstr == module_name){
+                      cur_module_config=modules[i]->getConfig();
+                      pDisplay->formSingleModule(cur_module_config);
+                      break;
+                  }
+              }
+          }
+          break;
+      }
+    case 7:
+      {
+          if(lock_isStarted){
+              pDisplay->output("DAQ cycle is running now.Stop it first");
+          }
+          else{
+              isPMT=true;
+              pDisplay->output("you're in PMT testing mode now");
+              pDisplay->pmt_status(true,0,0,NULL,"Initial State in PMT testing");
+          }
+          break;
 	}
+      case 8:
+      {
+        if(lock_isStarted){
+            pDisplay->output("DAQ cycle is running now.Stop it first");
+        }
+        else{
+            isPMT=false;
+            pDisplay->output("you're in Normal testing mode now");
+            pDisplay->normal_status(true,NULL,"Initial State in Normal testing");
+        }
+        break;
+      }
 
       flag = 100;
       

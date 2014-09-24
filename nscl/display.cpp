@@ -440,28 +440,64 @@ int CDisplay::getCmd()
       }
   }
   else if( 0 == str.compare("show_ccu")){
-
+    return 5;
   }
   else if( 0 == str.compare("show_module")){
-
+    wprintw(command_win,"input: ");
+    wgetstr(command_win,ch);
+    module_name=ch;
+    return 6;
   }
   else if( 0 == str.compare("quit") ){
     return 0;
   }
   else if(0 == str.compare("pmt")){
-
+    if(isPMT){
+        return -1;
+    }
+    else{
+        isPMT=true;
+        return 7;
+    }
   }
   else if(0 == str.compare("exit")){
-
+    if(isPMT){
+        isPMT=false;
+        return 8;
+    }
+    else{
+        return -1;
+    }
   }
   else if(0 == str.compare("mkdir")){
-
+      if(isPMT){
+        wprintw(command_win,"input: ");
+        wgetstr(command_win,ch);
+        PMTdir=ch;
+        return 11;
+      }
+      else{
+        return -1;
+      }
   }
   else if(0 == str.compare("setdir")){
-
+    if(isPMT){
+        wprintw(command_win,"input: ");
+        wgetstr(command_win,ch);
+        PMTdir=ch;
+        return 12;
+    }
+    else{
+        return -1;
+    }
   }
   else if(0 == str.compare("connect")){
-
+    if(isPMT){
+        return 13;
+    }
+    else{
+        return -1;
+    }
   }
   else{
     return -1;
@@ -474,3 +510,7 @@ string CDisplay::getFilename()
     return filename;
 }
 
+string CDisplay::getPMTdir()
+{
+    return PMTdir;
+}

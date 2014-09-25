@@ -248,7 +248,7 @@ void CManager::CmdAnalyse()
               string module_name=pDisplay->getModulename();
               int size=modules.size();
               for(int i=0;i<size;i++){
-                  tempstr=modules[i].getName();
+                  tempstr=modules[i]->getName();
                   if(tempstr == module_name){
                       cur_module_config=modules[i]->getConfig();
                       pDisplay->formSingleModule(cur_module_config);
@@ -283,6 +283,7 @@ void CManager::CmdAnalyse()
         break;
       }
 
+      }
       flag = 100;
       
     }

@@ -52,7 +52,7 @@ CDisplay::~CDisplay()
 
 //filename: data saved into this file
 //info: user-defined content, usually buffers transfered,event counts,waiting...
-void CDisplay::normal_status(bool IsIdle,char* filename,char* info)
+void CDisplay::normal_status(bool IsIdle,const char* filename,const char* info)
 {
     wclear(status_win);
     //header
@@ -94,7 +94,7 @@ void CDisplay::normal_status(bool IsIdle,char* filename,char* info)
 //pulser_status,hv_status: -1 can't connected,0 unconnected, 1 connected
 //testDir: pmt testing dir
 //output: user-defined output content, usually HV_Step, LED_config...
-void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,char* testDir,char* output)
+void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char* testDir,const char* output)
 {
     wclear(status_win);
    //header
@@ -513,4 +513,9 @@ string CDisplay::getFilename()
 string CDisplay::getPMTdir()
 {
     return PMTdir;
+}
+
+string CDisplay::getModulename()
+{
+    return module_name;
 }

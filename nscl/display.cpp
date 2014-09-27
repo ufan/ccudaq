@@ -9,8 +9,9 @@
 #include "display.h"
 #include "../pdcurses/include/curses.h"
 
-std::string  CDisplay::PMT_prompt="pmt_$$";
-std::string CDisplay::Normal_prompt=">>";
+using namespace std;
+string  CDisplay::PMT_prompt="pmt_$$";
+string CDisplay::Normal_prompt=">>";
 
 CDisplay::CDisplay():
     isPMT(false)

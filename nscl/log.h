@@ -14,21 +14,19 @@
 #include <fstream>
 #include <string>
 
-using namespace std;
-
 class CLog
 {
  public:
   CLog( const char* str,bool isfirst=false);
-  CLog(string str,bool isfirst=false);
+  CLog(std::string str,bool isfirst=false);
   virtual ~CLog();
 
  private:
-  ofstream fp;
-  string logstr;
+  std::ofstream fp;
+  std::string logstr;
 
  public:
-  static string fileChar;
+  static std::string fileChar;
 };
 
 

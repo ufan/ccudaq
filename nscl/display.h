@@ -9,15 +9,13 @@
 #include "curses.h"
 #include <string>
 
-using namespace std;
-
 class CDisplay
 {
  public:
   CDisplay();
   virtual ~CDisplay();
  public:
-  void output(string );
+  void output(std::string );
   void normal_status(bool IsIdle,const char* filename,const char* info);
   void pmt_status(bool IsIdle,int pulser_status,int hv_status,const char* testDir,const char* output);
   void prompt();
@@ -25,16 +23,16 @@ class CDisplay
   void formCCU(CC_Config& config_ccu,ModuleConfigFactory& config_modules);
   void form();
   int getCmd();
-  string getFilename();
-  string getPMTdir();
-  string getModulename();
+  std::string getFilename();
+  std::string getPMTdir();
+  std::string getModulename();
 
  private:
-  string filename;
-  string PMTdir;
-  string module_name;
-  static string PMT_prompt;
-  static string Normal_prompt;
+  std::string filename;
+  std::string PMTdir;
+  std::string module_name;
+  static std::string PMT_prompt;
+  static std::string Normal_prompt;
 
   bool isPMT;
 

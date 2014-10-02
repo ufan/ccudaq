@@ -1139,6 +1139,7 @@ void CManager::pmtTesting()
     ofstream fp_log;
     ofstream fp_ledconfig;
     FILE *fp_raw;
+    string tempstr;
 
     char msg[256];
     string raw_dir=PMTdir+"/raw_data";
@@ -1157,8 +1158,29 @@ void CManager::pmtTesting()
     //power on sy1527 and pmt warming
     _setV(warming_voltage);
     _powerOn();
-    fp_log << getTimeStr() <<": Power On SY1527"<<endl;
+    tempstr=getTimeStr() + ": Power On SY1527";
+    pDisplay->output(tempstr);
+    fp_log << tempstr <<endl;
+    tempstr=getTimeStr() + ": PMT warming started.";
+    pDisplay->output(tempstr);
     fp_log << getTimeStr() <<": PMT warming started.Warming Voltage is "<<warming_voltage<<"V"<<endl;
+
+    time_t begin=time(NULL);
+    time_t end=time(NULL);
+    double warming_seconds=60*1;
+    double interval=difftime(end,begin);
+    while(interval < warming_seconds){
+        Sleep(60000);
+        end=time(NULL);
+        interval=difftime(end,begin);
+    }
+    tempstr=getTimeStr() + ": PMT warming stopped.";
+    pDisplay->output(tempstr);
+    fp_log << tempstr <<endl;
+
+    _HVfeedback();
+    fp_log<<"\t\tCurrent Monitoring Value:"<<endl;
+    fp_log<<"\t\tCH:\t";
 
     //
 }
@@ -1221,4 +1243,46 @@ void CManager::_HVfeedback()
     for(size_t i=0;i<size;i++){
         pHVGroup[i]->update(config_hv[pHVGroup[i].getSlot()]);
     }
+}
+
+string CManager::_formatHVGroup()
+{
+    HVGroup::iterator it;
+    HVChannels tempChs;
+    size_t channels_size;
+    stringstream ss;
+    ss<<"\t\tCurrent Monitoring Value:\n";
+
+    ss<<"\t\tCH:";
+    for(it=config_hv.begin();it!=config_hv.end();it++){
+        tempChs=it->second;
+        channels_size=tempChs.size();
+        for(size_t j=0;j<channels_size;j++){
+            ss<<"\t"<<tempChs[j].slot<<"_"<<tempChs[j].ch_id;
+        }
+    }
+    ss<<"\n";
+
+    ss<<setprecision(2);
+    ss<<"\t\tVMon:";
+    for(it=config_hv.begin();it!=config_hv.end();it++){
+        tempChs=it->second;
+        channels_size=tempChs.size();
+        for(size_t j=0;j<channels_size;j++){
+            ss<<"\t"<<tempChs[j].VMon;
+        }
+    }
+    ss<<"\n";
+
+    ss<<"\t\tIMon:";
+    for(it=config_hv.begin();it!=config_hv.end();it++){
+        tempChs=it->second;
+        channels_size=tempChs.size();
+        for(size_t j=0;j<channels_size;j++){
+            ss<<"\t"<<tempChs[j].IMon;
+        }
+    }
+    ss<<"\n";
+
+    return ss.str();
 }

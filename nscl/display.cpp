@@ -500,6 +500,22 @@ int CDisplay::getCmd()
         return -1;
     }
   }
+  else if( 0 == str.compare("config_pmt")){
+      if(isPMT){
+          return 14;
+      }
+      else{
+          return -1;
+      }
+  }
+  else if( 0 == str.compare("show_config")){
+      if(isPMT){
+          return 15;
+      }
+      else{
+          return -1;
+      }
+  }
   else{
     return -1;
   }

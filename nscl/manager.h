@@ -20,7 +20,12 @@ Wed May  8 14:13:23 2013  Take it from main.h
 #include "CCCUSB.h"
 #include "CCCUSBReadoutList.h"
 #include "display.h"
+//PMT testing
+#include "AFG3252.h"
+#include "PMTTestingConfig.h"
+#include "SYX527.h"
 
+#define PMTConfig_PATH "pmt.conf"
 class CManager
 {
  public:
@@ -30,14 +35,35 @@ class CManager
  private:
   std::string mVersion;  // Software Version Number
   std::string filename;
-  std::string PMTdir;
 
   CCCUSB* pCCU;
   ModuleFactory modules;
   CC_Config config_cc;
   ModuleConfigFactory config_module;
   CCCUSBReadoutList stacklist;
+  //PMT testing
+  std::string PMTdir;
+  bool isPMT;
+  bool isPMTConfiged;
+  unsigned long packet_num;
+  float I0Set;
+  PMTTestingConfig config_pmt;
+  HVGroup config_hv;
+  SYX527* pHVController;
+  std::vector<SYX527_Module*> pHVGroup;
+  AFG3252* pPulser;
 
+  bool MkDir(const char* dir,char* msg);
+  bool ConfigPMT();
+  bool _configAFG3252();
+  bool _configSYX527();
+  bool _configTesting();
+  void pmtCycle();
+  void delPMTConfig();
+
+  pthread_t mPMTTestingThread;
+  static void* pmtTestingThread(void*);
+  //
   CDisplay* pDisplay;
 
   pthread_t mDisplayThread;
@@ -72,7 +98,6 @@ class CManager
   bool lock_isStarted;
   bool lock_isConfiged;
   bool lock_isDaqQuited;
-  bool isPMT;
   unsigned int m_hits;
 
   clock_t m_Daq_start, m_Daq_stop;

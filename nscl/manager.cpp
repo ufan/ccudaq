@@ -33,6 +33,12 @@ CManager::CManager()
   lock_isDaqQuited = true;
 
   isPMT=false;
+  isPMTConfiged=false;
+  packet_num=100;
+  I0Set = 50.0;
+  pHVController=NULL;
+  pPulser=NULL;
+
   m_hits = -1;
   pDisplay = NULL;
   pCCU = NULL;
@@ -193,11 +199,11 @@ void CManager::CmdAnalyse()
                 pDisplay->output( buf2 );
                 tempstr+=buf2;
                 pDisplay->normal_status(true,NULL,tempstr.c_str());
-	      }
-          else
-	      {
+            }
+            else
+            {
                 pDisplay->output("No DAQ running. ");
-	      }
+            }
         }
 	    break;
 	  }
@@ -853,5 +859,232 @@ void* CManager::daqThread( void* args )
   return NULL;
 }
 
+//pmt testing
+bool CManager::MkDir(const char* dir,char *msg)
+{
+    if (!CreateDirectory(dir, NULL))
+    {
+        if(ERROR_ALREADY_EXISTS == GetLastError()){
+          sprintf(msg,"%s already exists",PMTdir.c_str());
+          return false;
+       }
+       else if(ERROR_PATH_NOT_FOUND == GetLastError()){
+          sprintf(msg,"%s path not found",PMTdir.c_str());
+          return false;
+       }
+    }
+    return true;
+}
 
+void CManager::delPMTConfig()
+{
+    if(isPMTConfiged){
+        //
+        size_t num=pHVGroup.size();
+        for(size_t i=0;i<num;i++){
+            delete pHVGroup[i];
+        }
+        pHVGroup.clear();
+        //
+        config_pmt.clear();
+        config_hv.clear();
+        //
+        delete SYX527;
+        delete AFG3252;
+        //
+        isPMTConfiged=false;
+    }
+}
 
+bool CManager::ConfigPMT()
+{
+    //clean
+    delPMTConfig();
+    //reinit
+    if(!_configAFG3252()){
+        CLog("Failed in config AFG3252");
+        return false;
+    }
+    if(!_configSYX527()){
+        CLog("Failed in config SYX527");
+        return false;
+    }
+    if(!_configTesting()){
+        CLog("Failed in config PMT Tesing procedure");
+        return false;
+    }
+
+    isPMTConfiged=true;
+    CLog("Config PMT testing successfully");
+    return true;
+}
+
+bool CManager::_configAFG3252()
+{
+    string IPAddr,name;
+    string tempstr;
+    ifstream fp;
+    fp.open(PMTConfig_PATH);
+    if(!fp){
+        return false;
+    }
+    //
+    while(1){
+        fp>> tempstr;
+        if(tempstr == "<AFG3252_BEGIN>"){
+            break;
+        }
+    }
+
+    while(tempstr != "</AFG3252_END>"){
+        fp >> tempstr;
+        if(tempstr == "IP"){
+            fp >> tempstr;
+            fp >> tempstr;
+            IPAddr=tempstr;
+        }
+        else if(tempstr == "NAME"){
+            fp >> tempstr;
+            fp >> tempstr;
+            name=tempstr;
+        }
+    }
+    //
+    pPulser=new AFG3252(name.c_str(),IPAddr.c_str());
+
+    fp.close();
+    return true;
+}
+
+bool CManager::_configSYX527()
+{
+    string IPAddr,UserName,PassWord;
+    ushort slot,ch_id;
+    string chname;
+    HVChannel tempchannel;
+    string tempstr;
+    ifstream fp;
+    fp.open(PMTConfig_PATH);
+    if(!fp){
+        return false;
+    }
+    //
+    while(1){
+        fp>> tempstr;
+        if(tempstr == "<SYX527_BEGIN>"){
+            break;
+        }
+    }
+
+    while(tempstr != "</SYX527_END>"){
+        fp >> tempstr;
+        if(tempstr == "IP"){
+            fp >> tempstr;
+            fp >> tempstr;
+            IPAddr=tempstr;
+        }
+        else if(tempstr == "USERNAME"){
+            fp >> tempstr;
+            fp >> tempstr;
+            UserName=tempstr;
+        }
+        else if(tempstr == "PASSWORD"){
+            fp >> tempstr;
+            fp >> tempstr;
+            PassWord=tempstr;
+        }
+        else if(tempstr == "<TABLE_BEGIN>"){
+            fp >> tempstr;
+            fp >> tempstr;
+            fp >> tempstr;
+
+            fp >> tempstr;
+            while(tempstr != "</TABLE_END>"){
+                //
+                chname=tempstr;
+                fp >> slot;
+                fp >> ch_id;
+                tempchannel.slot=slot;
+                tempchannel.ch_id=ch_id;
+                sprintf(tempchannel.ch_name,"%s",chname.c_str());
+                config_hv[slot].push_back(tempchannel);
+                //
+                fp >> tempstr;
+            }
+        }
+    }
+    //
+    pHVController=new SYX527(IPAddr.c_str(),UserName.c_str(),PassWord.c_str());
+    SYX527_Module* tempmodule;
+    HVGroup::iterator it;
+    for(it=config_hv.begin();it!=config_hv.end();it++){
+        tempmodule=new SYX527_Module(pHVController,it->first,it->second);
+        pHVGroup.push_back(tempmodule);
+    }
+    //
+    fp.close();
+    return true;
+}
+
+bool CManager::_configTesting()
+{
+    float voltage;
+    LEDAmp templed;
+    string tempstr;
+    ifstream fp;
+    fp.open(PMTConfig_PATH);
+    if(!fp){
+        return false;
+    }
+    //
+    while(1){
+        fp>> tempstr;
+        if(tempstr == "<PMTTesting_BEGIN>"){
+            break;
+        }
+    }
+
+    while(tempstr != "</PMTTesting_END>"){
+        fp >> tempstr;
+        if(tempstr == "PACKET_NUMBER"){
+            fp >> tempstr;
+            fp >> packet_num;
+        }
+        else if(tempstr == "I0"){
+            fp >> tempstr;
+            fp >> I0Set;
+        }
+        else if(tempstr == "<STEP_BEGIN>"){
+            while(tempstr != "</STEP_END>"){
+                fp >> tempstr;
+                if(tempstr == "V0"){
+                    fp >> tempstr;
+                    fp >> voltage;
+                }
+                else if(tempstr == "<TABLE_BEGIN>"){
+                    fp >> tempstr;
+                    fp >> tempstr;
+                    fp >> tempstr;
+                    fp >> tempstr;
+                    fp >> tempstr;
+                    fp >> tempstr;
+
+                    fp >> tempstr;
+                    while(tempstr != "</TABLE_END>"){
+                        fp >> templed.highV;
+                        fp >> templed.frq;
+                        fp >> templed.width;
+                        fp >> templed.leading;
+                        fp >> templed.trailing;
+                        config_pmt[voltage].push_back(templed);
+                        //
+                        fp >> tempstr;
+                    }
+                }
+            }
+        }
+    }
+
+    fp.close();
+    return true;
+}

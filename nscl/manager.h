@@ -46,7 +46,8 @@ class CManager
   bool isPMT;
   bool isPMTConfiged;
   unsigned long packet_num;
-  float I0Set;
+  float current_limit;
+  float warming_voltage;
   PMTTestingConfig config_pmt;
   HVGroup config_hv;
   SYX527* pHVController;
@@ -58,8 +59,16 @@ class CManager
   bool _configAFG3252();
   bool _configSYX527();
   bool _configTesting();
-  void pmtCycle();
+  void daqCycle(FILE* fp,unsigned long num);
+  void pmtTesting();
   void delPMTConfig();
+  void _setV(float voltage);
+  void _setI(float current);
+  void _setRup(float rup);
+  void _setRDwn(float rdwn);
+  void _powerOn();
+  void _powerOff();
+  void _HVfeedback();
 
   pthread_t mPMTTestingThread;
   static void* pmtTestingThread(void*);

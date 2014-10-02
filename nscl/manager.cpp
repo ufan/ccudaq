@@ -35,7 +35,8 @@ CManager::CManager()
   isPMT=false;
   isPMTConfiged=false;
   packet_num=100;
-  I0Set = 50.0;
+  current_limit = 50.0;
+  warming_voltage = 500.0;
   pHVController=NULL;
   pPulser=NULL;
 
@@ -1019,6 +1020,7 @@ bool CManager::_configSYX527()
     HVGroup::iterator it;
     for(it=config_hv.begin();it!=config_hv.end();it++){
         tempmodule=new SYX527_Module(pHVController,it->first,it->second);
+        tempmodule->updateChName();
         pHVGroup.push_back(tempmodule);
     }
     //
@@ -1050,9 +1052,13 @@ bool CManager::_configTesting()
             fp >> tempstr;
             fp >> packet_num;
         }
-        else if(tempstr == "I0"){
+        else if(tempstr == "CURRENT_LIMIT"){
             fp >> tempstr;
-            fp >> I0Set;
+            fp >> current_limit;
+        }
+        else if(tempstr == "WARMING_VOLTAGE"){
+            fp >> tempstr;
+            fp >> warming_voltage;
         }
         else if(tempstr == "<STEP_BEGIN>"){
             while(tempstr != "</STEP_END>"){
@@ -1087,4 +1093,132 @@ bool CManager::_configTesting()
 
     fp.close();
     return true;
+}
+
+void CManager::pmtCycle(FILE* fp,unsigned long num)
+{
+    //init
+    daqInit();
+    //start stack execute
+    stackStart();
+    //open file
+    char buffer[4096*2];
+    size_t buffersize=4096*2;//ccusb need buffersize larger than the actual buffer length
+    size_t transferCount=0;
+
+    int status;
+    unsigned long counter=0;
+    while(counter<num){
+         status=pCCU->usbRead(buffer,buffersize,&transferCount);
+         if(status<0){
+             pDisplay->output("waiting data...");
+         }
+         if(transferCount>0){
+             counter++;
+             fwrite(buffer,sizeof(char),transferCount,fp);
+             if((counter%100) == 0){
+                 char msg[100];
+                 sprintf(msg,"%d packets",i);
+                 pDisplay->output(msg);
+             }
+         }
+    }
+    //stop stack execute
+    stackStop();
+    //read remaining packets
+    transferCount=1;
+    while(transferCount>0){
+        status=pCCU->usbRead(buffer,buffersize,&transferCount,3000);
+    }
+    //clean procedure
+    daqClear();
+}
+
+void CManager::pmtTesting()
+{
+    ofstream fp_log;
+    ofstream fp_ledconfig;
+    FILE *fp_raw;
+
+    char msg[256];
+    string raw_dir=PMTdir+"/raw_data";
+    if(!MkDir(raw_dir.c_str(),msg)){
+        pDisplay->output(msg);
+        return;
+    }
+    //log file
+    string log_filename=raw_dir+"log.txt";
+    fp_log.open(log_filename.c_str());
+    if(!fp_log){
+        pDisplay->output("can't open "+log_filename);
+        return;
+    }
+    fp_log << "Logging info of this PMT testing" <<endl;
+    //power on sy1527 and pmt warming
+    _setV(warming_voltage);
+    _powerOn();
+    fp_log << getTimeStr() <<": Power On SY1527"<<endl;
+    fp_log << getTimeStr() <<": PMT warming started.Warming Voltage is "<<warming_voltage<<"V"<<endl;
+
+    //
+}
+
+void CManager::_setV(float voltage)
+{
+    size_t size=pHVGroup.size();
+    for(size_t i=0;i<size;i++){
+        pHVGroup[i]->setVSet(voltage);
+        pHVGroup[i]->updateVSet();
+    }
+}
+
+void CManager::_setI(float current)
+{
+    size_t size=pHVGroup.size();
+    for(size_t i=0;i<size;i++){
+        pHVGroup[i]->setISet(current);
+        pHVGroup[i]->updateISet();
+    }
+}
+
+void CManager::_setRup(float rup)
+{
+    size_t size=pHVGroup.size();
+    for(size_t i=0;i<size;i++){
+        pHVGroup[i]->setRampUp(rup);
+        pHVGroup[i]->updateRampUp();
+    }
+}
+
+void CManager::_setRDwn(float rdwn)
+{
+    size_t size=pHVGroup.size();
+    for(size_t i=0;i<size;i++){
+        pHVGroup[i]->setRampDown(rdwn);
+        pHVGroup[i]->updateRampDown();
+    }
+}
+
+void CManager::_powerOn()
+{
+    size_t size=pHVGroup.size();
+    for(size_t i=0;i<size;i++){
+        pHVGroup[i]->PowerOn();
+    }
+}
+
+void CManager::_powerOff()
+{
+    size_t size=pHVGroup.size();
+    for(size_t i=0;i<size;i++){
+        pHVGroup[i]->PowerOff();
+    }
+}
+
+void CManager::_HVfeedback()
+{
+    size_t size=pHVGroup.size();
+    for(size_t i=0;i<size;i++){
+        pHVGroup[i]->update(config_hv[pHVGroup[i].getSlot()]);
+    }
 }

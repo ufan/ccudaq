@@ -69,6 +69,8 @@ class CManager
   void _powerOn();
   void _powerOff();
   void _HVfeedback();
+  void _PulserInit();
+
   std::string _formatHVGroup();
 
   pthread_t mPMTTestingThread;

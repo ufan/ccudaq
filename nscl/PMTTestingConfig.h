@@ -8,8 +8,8 @@ struct LEDAmp
     float highV;
     int frq;
     float width;
-    float leading;
-    float trailing;
+    float trigDelay;
+    float trigWidth;
 };
 
 typedef std::vector<LEDAmp> LEDPulserConfig;

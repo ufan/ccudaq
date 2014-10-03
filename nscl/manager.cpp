@@ -367,6 +367,7 @@ void CManager::daqInit()
     //eable LAM
     int size=modules.size();
     for(int i=0;i<size;i++){
+        modules[i]->clrDataMem();
         modules[i]->enableLam();
     }
 
@@ -383,6 +384,7 @@ void CManager::daqClear()
     int size=modules.size();
     for(int i=0;i<size;i++){
         modules[i]->disableLam();
+        modules[i]->clrDataMem();
     }
 
     return;
@@ -1021,6 +1023,8 @@ bool CManager::_configSYX527()
     for(it=config_hv.begin();it!=config_hv.end();it++){
         tempmodule=new SYX527_Module(pHVController,it->first,it->second);
         tempmodule->updateChName();
+        tempmodule->setRampUp(50.0);tempmodule->updateRampUp();
+        tempmodule->setRampDown(50.0);tempmodule->updateRampDown();
         pHVGroup.push_back(tempmodule);
     }
     //
@@ -1080,8 +1084,8 @@ bool CManager::_configTesting()
                         fp >> templed.highV;
                         fp >> templed.frq;
                         fp >> templed.width;
-                        fp >> templed.leading;
-                        fp >> templed.trailing;
+                        fp >> templed.trigDelay;
+                        fp >> templed.trigWidth;
                         config_pmt[voltage].push_back(templed);
                         //
                         fp >> tempstr;
@@ -1095,7 +1099,7 @@ bool CManager::_configTesting()
     return true;
 }
 
-void CManager::pmtCycle(FILE* fp,unsigned long num)
+void CManager::daqCycle(FILE* fp,unsigned long num)
 {
     //init
     daqInit();
@@ -1132,31 +1136,53 @@ void CManager::pmtCycle(FILE* fp,unsigned long num)
     }
     //clean procedure
     daqClear();
+
+    return;
 }
 
 void CManager::pmtTesting()
 {
+    double warming_seconds=60*10;//warming time
+    double balance_seconds=60*2;//HV stablizing time
+    double interval;
+    time_t begin,end;
+    ofstream fp_config;
     ofstream fp_log;
     ofstream fp_ledconfig;
     FILE *fp_raw;
 
-    string tempstr,currentTime;
+    string tempstr;
+    stringstream tempss;
+    tempss<<setprecision(2);
+    //mk raw dir
     char msg[256];
+    string hv_dir,raw_filename;
+    string ledconfig_filename;
     string raw_dir=PMTdir+"/raw_data";
     if(!MkDir(raw_dir.c_str(),msg)){
         pDisplay->output(msg);
         return;
     }
-    //log file
-    string log_filename=raw_dir+"log.txt";
+
+    //open log file and pmt config file
+    string log_filename=raw_dir+"/log.txt";
     fp_log.open(log_filename.c_str());
     if(!fp_log){
         pDisplay->output("can't open "+log_filename);
         return;
     }
     fp_log << "Logging info of this PMT testing" <<endl;
+
+    string config_filename=raw_dir+"/pmt.conf";
+    fp_config.open(config_filename.c_str());
+    if(!fp_config){
+        pDisplay->output("can't open "+config_filename);
+        return;
+    }
+
     //power on sy1527 and pmt warming
     _setV(warming_voltage);
+    _setI(current_limit);
     _powerOn();
     tempstr=getTimeStr() + ": Power On SY1527";
     pDisplay->output(tempstr);
@@ -1165,21 +1191,25 @@ void CManager::pmtTesting()
     pDisplay->output(tempstr);
     fp_log << getTimeStr() <<": PMT warming started.Warming Voltage is "<<warming_voltage<<"V"<<endl;
 
-    time_t begin=time(NULL);
-    time_t end=time(NULL);
-    double warming_seconds=60*1;
-    double interval=difftime(end,begin);
+    begin=time(NULL);
+    end=time(NULL);
+    interval=difftime(end,begin);
     while(interval < warming_seconds){
         Sleep(60000);
         end=time(NULL);
         interval=difftime(end,begin);
     }
+
     tempstr=getTimeStr() + ": PMT warming stopped.";
     pDisplay->output(tempstr);
     fp_log << tempstr <<endl;
 
     _HVfeedback();
     fp_log<< _formatHVGroup();
+
+    //LED pulser init
+    _PulserInit();
+
     //pedestal testing before LED sweep
     tempstr=raw_dir+"/pedestal";
     if(!MkDir(tempstr.c_str(),msg)){
@@ -1187,11 +1217,70 @@ void CManager::pmtTesting()
         return;
     }
 
-    tempstr=raw_dir+"/pedestal/before.dat";
-    fp_raw=fopen(tempstr.c_str(),"wb");
+    raw_filename=raw_dir+"/pedestal/before.dat";
+    fp_raw=fopen(raw_filename.c_str(),"wb");
+    if(!fp_raw){
+        pDisplay->output("can't open "+tempstr);
+        return;
+    }
+    tempstr=getTimeStr()+": Pedestal Testing before formal testing";
+    fp_log<<tempstr<<endl;
+    pDisplay->output(tempstr);
+
+    daqCycle(fp_raw,packet_num);
+    fclose(fp_raw);
+
+    tempstr=getTimeStr()+": Pedestal Testing completed";
+    fp_log<<tempstr<<endl;
+    pDisplay->output(tempstr);
 
     //formal testing
+    fp_log<<"\nFormal Testing"<<endl;
+    size_t voltage_step=config_pmt.size();
+    fp_config << "Voltage Step: "<<voltage_step<<endl;
+    size_t led_step;
+    int tempvolt;
+    PMTTestingConfig::iterator it;
+    LEDPulserConfig tempLEDConfig;
 
+    for(it=config_pmt.begin();it!=config_pmt.end();it++){
+        //set voltage
+        _setV(it->first);
+        tempvolt=static_cast<int>(it->first);
+        fp_config<< tempvolt <<"V"<<endl;
+        //mkdir
+        tempss.clear();tempss.str("");
+        tempss<<raw_dir<<"/"<<tempvolt<<"V";
+        hv_dir=tempss.str();
+        if(!MkDir(hv_dir.c_str(),msg)){
+            pDisplay->output(msg);
+            return;
+        }
+
+        //stablizing
+        begin=time(NULL);
+        end=time(NULL);
+        interval=difftime(end,begin);
+        while(interval < balance_seconds){
+            Sleep(60000);
+            end=time(NULL);
+            interval=difftime(end,begin);
+        }
+        //logging
+        tempss.clear();tempss.str("");
+        tempss<<getTimeStr()<<": HV is "<<it->first<<"V.Testing begin..."<<endl;
+        tempstr=tempss.str();
+        fp_log<<tempstr;
+        pDisplay->output(tempstr);
+
+        //testing begin
+        tempLEDConfig=it->second;
+        led_step=tempLEDConfig.size();
+
+        for(size_t i=0;i<led_step;i++){
+
+        }
+    }
     //pedestal testing after LED sweep
 }
 
@@ -1295,4 +1384,24 @@ string CManager::_formatHVGroup()
     ss<<"\n";
 
     return ss.str();
+}
+
+void CManager::_PulserInit()
+{
+    //Reset
+    pPulser->Reset();
+    pPulser->PowerOff(1);pPulser->PowerOff(2);
+    //set shape
+    pPulser->SetShape(1);pPulser->SetShape(2);
+    //sychronize
+    pPulser->TurnOnFrqConcurrent();
+    pPulser->PhaseInitiate();
+    //output2 is gate NIM
+    pPulser->SetPolarity(2,false);
+    pPulser->SetFrequency(1,1000);
+    pPulser->SetVoltageHigh(2,0);
+    pPulser->SetVoltageLow(2,-0.8);
+    pPulser->SetPulseWidth(2,200);
+    //output1 is positive
+    pPulser->SetVoltageLow(1,0);
 }

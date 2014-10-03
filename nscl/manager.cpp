@@ -35,6 +35,8 @@ CManager::CManager()
   isPMT=false;
   isPMTConfiged=false;
   packet_num=100;
+  warming_seconds=60*10;
+  stablizing_seconds=60*2;
   current_limit = 50.0;
   warming_voltage = 500.0;
   pHVController=NULL;
@@ -1056,6 +1058,10 @@ bool CManager::_configTesting()
             fp >> tempstr;
             fp >> packet_num;
         }
+        else if(tempstr == "WARMING_TIME"){
+            fp >> tempstr;
+            fp >> warming_seconds;
+        }
         else if(tempstr == "CURRENT_LIMIT"){
             fp >> tempstr;
             fp >> current_limit;
@@ -1142,8 +1148,6 @@ void CManager::daqCycle(FILE* fp,unsigned long num)
 
 void CManager::pmtTesting()
 {
-    double warming_seconds=60*10;//warming time
-    double balance_seconds=60*2;//HV stablizing time
     double interval;
     time_t begin,end;
     ofstream fp_config;
@@ -1184,6 +1188,7 @@ void CManager::pmtTesting()
     _setV(warming_voltage);
     _setI(current_limit);
     _powerOn();
+
     tempstr=getTimeStr() + ": Power On SY1527";
     pDisplay->output(tempstr);
     fp_log << tempstr <<endl;
@@ -1220,7 +1225,7 @@ void CManager::pmtTesting()
     raw_filename=raw_dir+"/pedestal/before.dat";
     fp_raw=fopen(raw_filename.c_str(),"wb");
     if(!fp_raw){
-        pDisplay->output("can't open "+tempstr);
+        pDisplay->output("can't open "+raw_filename);
         return;
     }
     tempstr=getTimeStr()+": Pedestal Testing before formal testing";
@@ -1257,31 +1262,132 @@ void CManager::pmtTesting()
             return;
         }
 
+        //new LED.config file
+        ledconfig_filename=hv_dir+"/LED.config";
+        fp_ledconfig.open(ledconfig_filename.c_str());
+        if(!fp_ledconfig){
+            pDisplay->output("can't open "+ledconfig_filename);
+            return;
+        }
+
         //stablizing
         begin=time(NULL);
         end=time(NULL);
         interval=difftime(end,begin);
-        while(interval < balance_seconds){
+        while(interval < stablizing_seconds){
             Sleep(60000);
             end=time(NULL);
             interval=difftime(end,begin);
         }
+
         //logging
         tempss.clear();tempss.str("");
-        tempss<<getTimeStr()<<": HV is "<<it->first<<"V.Testing begin..."<<endl;
+        tempss<<getTimeStr()<<": HV is "<<tempvolt<<"V.Testing begin..."<<endl;
         tempstr=tempss.str();
         fp_log<<tempstr;
         pDisplay->output(tempstr);
+
+        _HVfeedback();
+        fp_log<< _formatHVGroup();
 
         //testing begin
         tempLEDConfig=it->second;
         led_step=tempLEDConfig.size();
 
-        for(size_t i=0;i<led_step;i++){
+        fp_ledconfig<<"Measurement was started at "<<getTimeStr()<<endl;
+        fp_ledconfig<<"Total datapoints: "<<led_step<<endl;
+        fp_ledconfig<<"Index\tFrq\tWidth\tHigh_Level\tLow_Level\tLeading\tTrailing"<<endl;
 
+        for(size_t i=0;i<led_step;i++){
+            //logging
+            tempss.clear();tempss.str("");
+            tempss<<tempvolt<<"V. LED Amp_"<<i+1;
+            pDisplay->output(tempss.str());
+            //light source
+            pPulser->SetFrequency(1,tempLEDConfig[i].frq);
+            pPulser->SetVoltageHigh(1,tempLEDConfig[i].highV);
+            pPulser->SetPulseWidth(1,tempLEDConfig[i].width);
+            //gate(trigger)
+            pPulser->SetPulseDelay(2,tempLEDConfig[i].trigDelay);
+            pPulser->SetPulseWidth(2,tempLEDConfig[i].trigWidth);
+            //poweron
+            pPulser->PowerOn(1);
+            pPulser->PowerOn(2);
+
+            //raw file
+            tempss.clear();tempss.str("");
+            tempss<<hv_dir<<"/"<<i+1<<".dat";
+            raw_filename=tempss.str();
+            fp_raw=fopen(raw_filename.c_str(),"wb");
+            if(!fp_raw){
+                pDisplay->output("can't open "+raw_filename);
+                return;
+            }
+
+            //daq
+            daqCycle(fp_raw,packet_num);
+            fclose(fp_raw);
+
+            //poweroff LED source
+            pPulser->PowerOff(1);
+            pPulser->PowerOff(2);
+            //logging
+            fp_ledconfig<<i+1<<"\t";
+            pPulser->GetFrequency(1,msg);fp_ledconfig<<msg<<"\t";
+            pPulser->GetPulseWidth(1,msg);fp_ledconfig<<msg<<"\t";
+            pPulser->GetVoltageHigh(1,msg);fp_ledconfig<<msg<<"\t";
+            pPulser->GetVoltageLow(1,msg);fp_ledconfig<<msg<<"\t";
+            pPulser->GetPulseLeadingEdge(1,msg);fp_ledconfig<<msg<<"\t";
+            pPulser->GetPulseTrailingEdge(1,msg);fp_ledconfig<<msg<<endl;
         }
+
+        //testing end
+        fp_ledconfig<<endl;
+        fp_ledconfig<<"Measurement was finished at "<<getTimeStr()<<endl;
+        fp_ledconfig.close();
+
+        //logging
+        tempss.clear();tempss.str("");
+        tempss<<getTimeStr()<<": "<<tempvolt<<"V testing complete."<<endl;
+        tempstr=tempss.str();
+        fp_log<<tempstr;
+        pDisplay->output(tempstr);
+
+        _HVfeedback();
+        fp_log<< _formatHVGroup();
+        //
+
     }
+
+    fp_log<<"\nFormal testing completed.\n"<<endl;
+    fp_config.close();
+
     //pedestal testing after LED sweep
+    raw_filename=raw_dir+"/pedestal/end.dat";
+    fp_raw=fopen(raw_filename.c_str(),"wb");
+    if(!fp_raw){
+        pDisplay->output("can't open "+raw_filename);
+        return;
+    }
+    tempstr=getTimeStr()+": Pedestal Testing after formal testing";
+    fp_log<<tempstr<<endl;
+    pDisplay->output(tempstr);
+
+    daqCycle(fp_raw,packet_num);
+    fclose(fp_raw);
+
+    tempstr=getTimeStr()+": Pedestal Testing completed";
+    fp_log<<tempstr<<endl;
+    pDisplay->output(tempstr);
+
+    //Power off SY1527
+    _powerOff();
+    tempstr=getTimeStr() + ": Power Off SY1527";
+    pDisplay->output(tempstr);
+    fp_log << tempstr <<endl;
+
+    fp_log.close();
+
 }
 
 void CManager::_setV(float voltage)

@@ -46,6 +46,8 @@ class CManager
   bool isPMT;
   bool isPMTConfiged;
   unsigned long packet_num;
+  double warming_seconds;
+  double stablizing_seconds;
   float current_limit;
   float warming_voltage;
   PMTTestingConfig config_pmt;

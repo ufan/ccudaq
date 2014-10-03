@@ -1139,8 +1139,8 @@ void CManager::pmtTesting()
     ofstream fp_log;
     ofstream fp_ledconfig;
     FILE *fp_raw;
-    string tempstr;
 
+    string tempstr,currentTime;
     char msg[256];
     string raw_dir=PMTdir+"/raw_data";
     if(!MkDir(raw_dir.c_str(),msg)){
@@ -1179,10 +1179,20 @@ void CManager::pmtTesting()
     fp_log << tempstr <<endl;
 
     _HVfeedback();
-    fp_log<<"\t\tCurrent Monitoring Value:"<<endl;
-    fp_log<<"\t\tCH:\t";
+    fp_log<< _formatHVGroup();
+    //pedestal testing before LED sweep
+    tempstr=raw_dir+"/pedestal";
+    if(!MkDir(tempstr.c_str(),msg)){
+        pDisplay->output(msg);
+        return;
+    }
 
-    //
+    tempstr=raw_dir+"/pedestal/before.dat";
+    fp_raw=fopen(tempstr.c_str(),"wb");
+
+    //formal testing
+
+    //pedestal testing after LED sweep
 }
 
 void CManager::_setV(float voltage)

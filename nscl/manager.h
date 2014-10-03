@@ -69,6 +69,7 @@ class CManager
   void _powerOn();
   void _powerOff();
   void _HVfeedback();
+  std::string _formatHVGroup();
 
   pthread_t mPMTTestingThread;
   static void* pmtTestingThread(void*);

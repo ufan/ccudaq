@@ -366,6 +366,41 @@ void CManager::CmdAnalyse()
           }
           break;
       }
+      case 11:
+      {
+          if(lock_isStarted){
+              pDisplay->output("DAQ cycle is running now.Stop it first");
+          }
+          else{
+              if(!PMTdir.empty()){
+
+              }
+              PMTdir=pDisplay->getPMTdir();
+          }
+          break;
+      }
+      case 12:
+      {
+          if(!isPMTConfiged){
+              pDisplay->output("Config PMT testing procedure first");
+          }
+          else{
+
+          }
+          break;
+      }
+      case 13:
+      {
+          if(ConfigPMT()){
+              isPMTConfiged=true;
+              pDisplay->output("Config PMT-testing successfully");
+          }
+          else{
+              isPMTConfiged=false;
+              pDisplay->output("Config PMT-tesging failed");
+          }
+          break;
+      }
     }
       flag = 100;
       

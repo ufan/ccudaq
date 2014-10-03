@@ -14,7 +14,7 @@ string  CDisplay::PMT_prompt="pmt_$$";
 string CDisplay::Normal_prompt=">>";
 
 CDisplay::CDisplay():
-    isPMT(false)
+    isPMT(false),CurrentDir("./")
 {
   initscr();
   //init color pairs
@@ -471,14 +471,22 @@ int CDisplay::getCmd()
     }
   }
   else if(0 == str.compare("mkdir")){
-      if(isPMT){
         wprintw(command_win,"input: ");
         wgetstr(command_win,ch);
-        PMTdir=ch;
-        return 11;
+        dirname=ch;
+
+        return 9;
+  }
+  else if(0 == str.compare("curdir")){
+      if(isPMT){
+        return -1;
       }
       else{
-        return -1;
+        wprintw(command_win,"input: ");
+        wgetstr(command_win,ch);
+        CurrentDir=ch;
+
+        return 10;
       }
   }
   else if(0 == str.compare("setdir")){
@@ -486,7 +494,7 @@ int CDisplay::getCmd()
         wprintw(command_win,"input: ");
         wgetstr(command_win,ch);
         PMTdir=ch;
-        return 12;
+        return 11;
     }
     else{
         return -1;
@@ -494,7 +502,7 @@ int CDisplay::getCmd()
   }
   else if(0 == str.compare("connect")){
     if(isPMT){
-        return 13;
+        return 12;
     }
     else{
         return -1;
@@ -502,7 +510,7 @@ int CDisplay::getCmd()
   }
   else if( 0 == str.compare("config_pmt")){
       if(isPMT){
-          return 14;
+          return 13;
       }
       else{
           return -1;
@@ -510,7 +518,7 @@ int CDisplay::getCmd()
   }
   else if( 0 == str.compare("show_config")){
       if(isPMT){
-          return 15;
+          return 14;
       }
       else{
           return -1;
@@ -525,6 +533,16 @@ int CDisplay::getCmd()
 string CDisplay::getFilename()
 {
     return filename;
+}
+
+string CDisplay::getDirname()
+{
+    return dirname;
+}
+
+string CDisplay::getCurrentDir()
+{
+    return CurrentDir;
 }
 
 string CDisplay::getPMTdir()

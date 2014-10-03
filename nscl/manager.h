@@ -35,13 +35,15 @@ class CManager
  private:
   std::string mVersion;  // Software Version Number
   std::string filename;
+  std::string CurDir;
 
   CCCUSB* pCCU;
   ModuleFactory modules;
   CC_Config config_cc;
   ModuleConfigFactory config_module;
   CCCUSBReadoutList stacklist;
-  //PMT testing
+
+  //PMT testing////////////////////////
   std::string PMTdir;
   bool isPMT;
   bool isPMTConfiged;
@@ -52,9 +54,9 @@ class CManager
   float warming_voltage;
   PMTTestingConfig config_pmt;
   HVGroup config_hv;
-  SYX527* pHVController;
   std::vector<SYX527_Module*> pHVGroup;
   AFG3252* pPulser;
+  SYX527* pHVController;
 
   bool MkDir(const char* dir,char* msg);
   bool ConfigPMT();
@@ -72,11 +74,13 @@ class CManager
   void _powerOff();
   void _HVfeedback();
   void _PulserInit();
-
   std::string _formatHVGroup();
+  void _cleanUp();
 
   pthread_t mPMTTestingThread;
   static void* pmtTestingThread(void*);
+  //////////////////////////////////////
+
   //
   CDisplay* pDisplay;
 

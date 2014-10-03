@@ -25,10 +25,14 @@ class CDisplay
   int getCmd();
   std::string getFilename();
   std::string getPMTdir();
+  std::string getCurrentDir();
+  std::string getDirname();
   std::string getModulename();
 
  private:
   std::string filename;
+  std::string CurrentDir;
+  std::string dirname;
   std::string PMTdir;
   std::string module_name;
   static std::string PMT_prompt;

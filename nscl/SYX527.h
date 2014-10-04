@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "../lib/caenhvwrapper/include/CAENHVWrapper.h"
+#include "CAENHVWrapper.h"
 
 struct HVChannel
 {

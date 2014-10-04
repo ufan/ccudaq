@@ -39,7 +39,7 @@ CDisplay::CDisplay():
   box(form_win,0,0);
 
   //initial printing
-  normal_status(true,NULL,NULL);
+  normal_status(true,NULL,NULL,NULL);
   form();
   prompt();
   output("Program Started.");
@@ -53,7 +53,7 @@ CDisplay::~CDisplay()
 
 //filename: data saved into this file
 //info: user-defined content, usually buffers transfered,event counts,waiting...
-void CDisplay::normal_status(bool IsIdle,const char* filename,const char* info)
+void CDisplay::normal_status(bool IsIdle,const char* curdir,const char* filename,const char* info)
 {
     wclear(status_win);
     //header
@@ -68,14 +68,17 @@ void CDisplay::normal_status(bool IsIdle,const char* filename,const char* info)
         //filename
         if(filename){
             //filename
-            mvwprintw(status_win,4,1,"FileName: %s",filename);
-            mvwprintw(status_win,6,1,"Info:");
-            mvwprintw(status_win,7,1,"No DAQ Cycle Running.");
+            mvwprintw(status_win,4,1,"CurrentDir: %s",curdir);
+			mvwprintw(status_win,5,1,"FileName: %s",filename);
+            mvwprintw(status_win,7,1,"Info:");
+            mvwprintw(status_win,8,1,"No DAQ Cycle Running.");
         }
         else{
             //other info
-            mvwprintw(status_win,4,1,"Info:");
-            mvwprintw(status_win,5,1,"No DAQ Cycle Running");
+			mvwprintw(status_win,4,1,"CurrentDir: %s",curdir);
+			mvwprintw(status_win,5,1,"FileName: NOT SETTED");
+            mvwprintw(status_win,7,1,"Info:");
+            mvwprintw(status_win,8,1,"No DAQ Cycle Running");
         }
     }
     else{
@@ -83,10 +86,11 @@ void CDisplay::normal_status(bool IsIdle,const char* filename,const char* info)
         mvwprintw(status_win,2,1,"Mode: normal\t\t\tStatus: DAQ Cycle");
         wattroff(status_win,COLOR_PAIR(4));
         //filename
-        mvwprintw(status_win,4,1,"FileName: %s",filename);
+		mvwprintw(status_win,4,1,"CurrentDir: %s",curdir);
+        mvwprintw(status_win,5,1,"FileName: %s",filename);
         //other info
-        mvwprintw(status_win,6,1,"Info:");
-        mvwprintw(status_win,7,1,"%s",info);
+        mvwprintw(status_win,7,1,"Info:");
+        mvwprintw(status_win,8,1,"%s",info);
     }
 
     wrefresh(status_win);
@@ -171,7 +175,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
         }
         }
         //test dir
-        mvwprintw(status_win,5,1,"Testing Dir:  NULL");
+        mvwprintw(status_win,5,1,"Testing Dir:  %s",testDir);
         //other info
         mvwprintw(status_win,7,1,"Info:");
         mvwprintw(status_win,8,1,"%s",output);
@@ -261,6 +265,18 @@ void CDisplay::output( string str )
 
   wrefresh(command_win);
 
+}
+
+void CDisplay::formPMT()
+{
+    wclear(form_win);
+
+    wattron(form_win,A_REVERSE);
+    mvwprintw(form_win , 1 , 1 ,
+           "     PMT-testing Configurations    ");
+    wattroff(form_win,A_REVERSE);
+
+    mvwprintw(form_win,3,2,"SY1527:");
 }
 
 void CDisplay::formSingleModule(Module_Config& config)
@@ -516,7 +532,7 @@ int CDisplay::getCmd()
           return -1;
       }
   }
-  else if( 0 == str.compare("show_config")){
+  else if( 0 == str.compare("show_pmt")){
       if(isPMT){
           return 14;
       }

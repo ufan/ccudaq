@@ -16,9 +16,10 @@ class CDisplay
   virtual ~CDisplay();
  public:
   void output(std::string );
-  void normal_status(bool IsIdle,const char* filename,const char* info);
+  void normal_status(bool IsIdle,const char* curdir,const char* filename,const char* info);
   void pmt_status(bool IsIdle,int pulser_status,int hv_status,const char* testDir,const char* output);
   void prompt();
+  void formPMT();
   void formSingleModule(Module_Config& config);
   void formCCU(CC_Config& config_ccu,ModuleConfigFactory& config_modules);
   void form();

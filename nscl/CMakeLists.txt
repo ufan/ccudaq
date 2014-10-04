@@ -36,21 +36,26 @@ link_directories(${XXUSB_LIBRARY_DIR})
 set(WIN_LIBRARIES user32.lib advapi32.lib kernel32.lib)
 
 #ni-visa
-#set(NIVISA_DIR ./libxxusb)
-#set(NIVISA_INCLUDE_DIR ${XXUSB_DIR}/include)
-#set(NIVISA_LIBRARY_DIR ${XXUSB_DIR}/lib)
-#set(NIVISA_LIBRARIES libxxusb.lib)
-#include_directories(${NIVISA_INCLUDE_DIR})
-#link_directories(${NIVISA_LIBRARY_DIR})
+set(VISA_INCLUDE_DIR "C:/Program Files/IVI Foundation/VISA/WinNT/include" CACHE PATH "choose the dir where visa.h is included")
+set(VISA_LIBRARIES "C:/Program Files/IVI Foundation/VISA/WinNT/lib/msc/visa32.lib" CACHE FILEPATH
+"choose the file visa32.lib")
+include_directories(${VISA_INCLUDE_DIR})
 
+#CAENHVWrapper
+set(CAENHV_DIR ${ccudaq_SOURCE_DIR}/caenhvwrapper)
+set(CAENHV_INCLUDE_DIR ${CAENHV_DIR}/include)
+set(CAENHV_LIBRARIES ${CAENHV_DIR}/lib/CAENHVWrapper.lib)
+set(CAENHV_DLLS ${CAENHV_DIR}/dll/CAENHVWrapper.dll)
+include_directories(${CAENHV_INCLUDE_DIR})
 
 #####################################################
-set(SOURCES main.cpp nsclmodule.cpp CCCUSB.cpp CCCUSBReadoutList.cpp config.cpp display.cpp log.cpp manager.cpp)
+set(SOURCES main.cpp nsclmodule.cpp CCCUSB.cpp CCCUSBReadoutList.cpp config.cpp display.cpp log.cpp manager.cpp VISASystemManager.cpp VISAInstrument.cpp AFG3252.cpp SYX527.cpp)
 add_executable(nscldaq ${SOURCES})
-target_link_libraries(nscldaq ${PTHREAD_LIBRARIES} ${PDC_LIBRARIES} ${XXUSB_LIBRARIES} ${WIN_LIBRARIES})
+target_link_libraries(nscldaq ${PTHREAD_LIBRARIES} ${PDC_LIBRARIES} ${XXUSB_LIBRARIES} ${WIN_LIBRARIES} ${VISA_LIBRARIES} ${CAENHV_LIBRARIES})
 
 file(COPY ${PTHREAD_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
 file(COPY ${PDC_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
 file(COPY ${XXUSB_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
-file(COPY cc.conf adc.conf DESTINATION ${PROJECT_BINARY_DIR})
+file(COPY ${CAENHV_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
+file(COPY cc.conf adc.conf pmt.conf DESTINATION ${PROJECT_BINARY_DIR})
 #####################################################

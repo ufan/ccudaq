@@ -47,6 +47,8 @@ class CManager
   std::string PMTdir;
   bool isPMT;
   bool isPMTConfiged;
+  enum connection_status{UNCON=0,SUCCESS=1,FAILED=-1};
+  connection_status PulserStatus,HVStatus;
   unsigned long packet_num;
   double warming_seconds;
   double stablizing_seconds;

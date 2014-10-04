@@ -8,7 +8,7 @@ struct LEDAmp
     float highV;
     int frq;
     float width;
-    float trigDelay;
+    int trigDelay;
     float trigWidth;
 };
 

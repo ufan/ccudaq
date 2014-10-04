@@ -15,6 +15,7 @@ Wed May  8 14:17:58 2013 Take it from main.cpp
 #include <stdlib.h>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 #include <windows.h>
 
 using namespace std;
@@ -36,6 +37,8 @@ CManager::CManager()
   PMTdir="";
   isPMT=false;
   isPMTConfiged=false;
+  PulserStatus=UNCON;
+  HVStatus=UNCON;
   packet_num=100;
   warming_seconds=60*10;
   stablizing_seconds=60*2;
@@ -149,9 +152,15 @@ void CManager::CmdAnalyse()
           if(isPMT){
               if(!isPMTConfiged){
                   pDisplay->output("Please config the testing procedure before going");
+                  pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Please config the testing procedure before going");
+              }
+              else if((PulserStatus != SUCCESS) || (HVStatus != SUCCESS)){
+                  pDisplay->output("Please check the connection and re-config");
+                  pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Please check the connection and re-config");
               }
               else if(PMTdir.empty()){
                   pDisplay->output("Please set testing directory");
+                  pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Please set testing directory");
               }
               else{
                   if(lock_isStarted){
@@ -160,6 +169,7 @@ void CManager::CmdAnalyse()
                   else{
                       lock_isStarted=true;
                       pDisplay->output("PMT testing is started.");
+                      pDisplay->pmt_status(false,PulserStatus,HVStatus,PMTdir.c_str(),"PMT testing is started.");
 
                       pthread_attr_t attr;
                       pthread_attr_init(&attr);
@@ -168,7 +178,6 @@ void CManager::CmdAnalyse()
                       pthread_create( &mPMTTestingThread , NULL ,
                           pmtTestingThread , this );
 
-                      m_Daq_start = clock();
                   }
               }
           }
@@ -187,8 +196,7 @@ void CManager::CmdAnalyse()
                 {
                     lock_isStarted = true;
                     pDisplay->output("DAQ cycle is started.");
-                    string tempname=CurDir+"/"+filename;
-                    pDisplay->normal_status(false,tempname.c_str(),"DAQ cycle is started.");
+                    pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),"DAQ cycle is started.");
 
                     pthread_attr_t attr;
                     pthread_attr_init(&attr);
@@ -209,11 +217,11 @@ void CManager::CmdAnalyse()
             if(lock_isStarted){
                 lock_isStarted = false;
                 pDisplay->output("Wainting for PMT testing teminating.Data may be invalid");
+                pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Wainting for PMT testing teminating.Data may be invalid");
                 while( false == lock_isDaqQuited );
 
-                m_Daq_stop = clock();
                 pDisplay->output("PMT testing Stopped forcfully. ");
-
+                pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"PMT testing Stopped forcfully.");
             }
             else{
                 pDisplay->output("No PMT testing in run");
@@ -246,7 +254,7 @@ void CManager::CmdAnalyse()
                 sprintf( buf2 , "    hits = %d " , m_hits);
                 pDisplay->output( buf2 );
                 tempstr+=buf2;
-                pDisplay->normal_status(true,NULL,tempstr.c_str());
+                pDisplay->normal_status(true,CurDir.c_str(),NULL,tempstr.c_str());
             }
             else
             {
@@ -275,8 +283,7 @@ void CManager::CmdAnalyse()
                 ss<< "Data will be save to file: " << CurDir<<"/"<< filename;
                 pDisplay->output(ss.str().c_str());
                 tempstr.append(ss.str());
-                string tempname=CurDir+"/"+filename;
-                pDisplay->normal_status(true,tempname.c_str(),tempstr.c_str());
+                pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),tempstr.c_str());
           }
           break;
       }
@@ -320,9 +327,13 @@ void CManager::CmdAnalyse()
           }
           else{
               isPMT=true;
+              isPMTConfiged=false;
+              PulserStatus=UNCON;
+              HVStatus=UNCON;
+              PMTdir="";
               pDisplay->output("you're in PMT testing mode now");
               pDisplay->output("Please config TESTING PROCEDUR and DIRECTORY first before proceeding");
-              pDisplay->pmt_status(true,0,0,NULL,"Initial State in PMT testing");
+              pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Initial State in PMT testing");
           }
           break;
 	}
@@ -333,8 +344,9 @@ void CManager::CmdAnalyse()
         }
         else{
             isPMT=false;
+            filename="";
             pDisplay->output("you're in Normal testing mode now");
-            pDisplay->normal_status(true,NULL,"Initial State in Normal testing");
+            pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),"Initial State in Normal testing");
         }
         break;
       }
@@ -350,6 +362,13 @@ void CManager::CmdAnalyse()
                 string temp="Error! ";
                 temp.append(msg);
                 pDisplay->output(temp);
+                pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),temp.c_str());
+            }
+            else{
+                string tempstr;
+                tempstr="New Directory: "+ dir;
+                pDisplay->output(tempstr);
+                pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),tempstr.c_str());
             }
           }
           break;
@@ -363,6 +382,7 @@ void CManager::CmdAnalyse()
             CurDir=pDisplay->getCurrentDir();
             string tempstr="Files will be saved to directory: "+ CurDir;
             pDisplay->output(tempstr);
+            pDisplay->normal_status(true,CurDir.c_str(),NULL,tempstr.c_str());
           }
           break;
       }
@@ -372,10 +392,21 @@ void CManager::CmdAnalyse()
               pDisplay->output("DAQ cycle is running now.Stop it first");
           }
           else{
+              string tempstr;
               if(!PMTdir.empty()){
-
+                  stringstream ss;
+                  ss<<"WARNING: previous Testing dir\""<<PMTdir<<"\""
+                  <<" will be replaced";
+                  pDisplay->output(ss.str().c_str());
+                  tempstr=ss.str();
+                  tempstr.append("\n ");
               }
               PMTdir=pDisplay->getPMTdir();
+              stringstream ss;
+              ss<< "New Testing Dir: " << PMTdir;
+              pDisplay->output(ss.str().c_str());
+              tempstr.append(ss.str());
+              pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),tempstr.c_str());
           }
           break;
       }
@@ -385,7 +416,28 @@ void CManager::CmdAnalyse()
               pDisplay->output("Config PMT testing procedure first");
           }
           else{
-
+              if(pPulser->Status()){
+                  PulserStatus=SUCCESS;
+              }
+              else{
+                  PulserStatus=FAILED;
+              }
+              if(pHVController->connect()){
+                  Sleep(100);
+                  if(pHVController->disConnect()){
+                      HVStatus=SUCCESS;
+                  }
+                  else{
+                      HVStatus=FAILED;
+                  }
+              }
+              else{
+                  HVStatus=FAILED;
+              }
+              if(HVStatus==SUCCESS && PulserStatus==SUCCESS)
+                pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Connected");
+              else
+                pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Connection failed.Fix it before proceeding");
           }
           break;
       }
@@ -393,11 +445,34 @@ void CManager::CmdAnalyse()
       {
           if(ConfigPMT()){
               isPMTConfiged=true;
+              PulserStatus=UNCON;
+              HVStatus=UNCON;
+              CLog("Config PMT testing successfully");
               pDisplay->output("Config PMT-testing successfully");
+              pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Config PMT-testing successfully");
           }
           else{
               isPMTConfiged=false;
+              PulserStatus=UNCON;
+              HVStatus=UNCON;
+              CLog("Config PMT testing failed");
               pDisplay->output("Config PMT-tesging failed");
+              pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Config PMT-testing failed");
+          }
+          break;
+      }
+      case 14:
+      {
+          if(lock_isStarted){
+            pDisplay->output("DAQ cycle is running now.Stop it first");
+          }
+          else{
+            if(!isPMTConfiged){
+                pDisplay->output("config PMT testign first");
+            }
+            else{
+                pDisplay->formPMT();
+            }
           }
           break;
       }
@@ -423,19 +498,23 @@ bool CManager::daqCycle()
       stringstream tempstr;
       tempstr<<"can't open file: "<< filename;
       pDisplay->output(tempstr.str().c_str());
+      pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),tempstr.str().c_str());
       return false;
   }
   int status;
   size_t writeCount;
+  size_t counter=0;
   while(lock_isStarted){
        status=pCCU->usbRead(buffer,buffersize,&transferCount);
        if(status<0){
            pDisplay->output("waiting data...");
+           pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),"waiting data...");
        }
        if(transferCount>0){
            writeCount=fwrite(buffer,sizeof(char),transferCount,fp);
            if(writeCount != transferCount){
                pDisplay->output("data written error, DAQ cycle terminated!");
+               pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),"data written error, DAQ cycle terminated!");
                fclose(fp);
                stackStop();
                while(transferCount>0){
@@ -443,6 +522,13 @@ bool CManager::daqCycle()
                }
                daqClear();
                return false;
+           }
+           counter++;
+           if(counter%100==0){
+               char msg[100];
+               sprintf(msg,"%d packets",counter);
+               pDisplay->output(msg);
+               pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),msg);
            }
        }
   }
@@ -1004,8 +1090,8 @@ void CManager::delPMTConfig()
         config_pmt.clear();
         config_hv.clear();
         //
-        delete SYX527;
-        delete AFG3252;
+        delete pHVController;
+        delete pPulser;
         //
         isPMTConfiged=false;
     }
@@ -1029,8 +1115,6 @@ bool CManager::ConfigPMT()
         return false;
     }
 
-    isPMTConfiged=true;
-    CLog("Config PMT testing successfully");
     return true;
 }
 
@@ -1238,7 +1322,7 @@ void CManager::daqCycle(FILE* fp,unsigned long num)
              fwrite(buffer,sizeof(char),transferCount,fp);
              if((counter%100) == 0){
                  char msg[100];
-                 sprintf(msg,"%d packets",i);
+                 sprintf(msg,"%d packets",counter);
                  pDisplay->output(msg);
              }
          }
@@ -1524,6 +1608,8 @@ void* CManager::pmtTestingThread(void *args)
     pMan->lock_isStarted = false;
     pMan->lock_isDaqQuited = true;
 
+    pMan->pDisplay->pmt_status(true,pMan->PulserStatus,pMan->HVStatus,pMan->PMTdir.c_str(),"PMT testing end");
+
     return NULL;
 }
 
@@ -1583,7 +1669,7 @@ void CManager::_HVfeedback()
 {
     size_t size=pHVGroup.size();
     for(size_t i=0;i<size;i++){
-        pHVGroup[i]->update(config_hv[pHVGroup[i].getSlot()]);
+        pHVGroup[i]->update(config_hv[pHVGroup[i]->getSlot()]);
     }
 }
 

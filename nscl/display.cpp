@@ -7,7 +7,7 @@
 ****************************************************/
 
 #include "display.h"
-#include "../pdcurses/include/curses.h"
+#include "curses.h"
 
 using namespace std;
 string  CDisplay::PMT_prompt="pmt_$$";
@@ -18,25 +18,23 @@ CDisplay::CDisplay():
 {
   initscr();
   //init color pairs
-  {
-          start_color();
-          init_pair(1, COLOR_RED,     COLOR_BLACK);
-          init_pair(2, COLOR_GREEN,   COLOR_BLACK);
-          init_pair(3, COLOR_YELLOW,  COLOR_BLACK);
-          init_pair(4, COLOR_BLUE,    COLOR_BLACK);
-          init_pair(5, COLOR_CYAN,    COLOR_BLACK);
-          init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
-          init_pair(7, COLOR_WHITE,   COLOR_BLACK);
- }
+  start_color();
+  init_pair(1, COLOR_RED,     COLOR_BLACK);
+  init_pair(2, COLOR_GREEN,   COLOR_BLACK);
+  init_pair(3, COLOR_YELLOW,  COLOR_BLACK);
+  init_pair(4, COLOR_BLUE,    COLOR_BLACK);
+  init_pair(5, COLOR_CYAN,    COLOR_BLACK);
+  init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
+  init_pair(7, COLOR_WHITE,   COLOR_BLACK);
   //terminal sizes,
   //it is hard-coded now.may be better to be parametrized
-  resize_term(60,80);
-  status_win=newwin(20,40,0,0);
-  form_win = newwin(40,40,20,0);
-  prompt_win = newwin(20,40,0,40);
-  command_win = newwin(40,40,20,40);
+  resize_term(52,80);
+  status_win=newwin(18,40,0,0);
+  form_win = newwin(34,40,18,0);
+  prompt_win = newwin(18,40,0,40);
+  command_win = newwin(34,40,18,40);
 
-  box(form_win,0,0);
+  //box(form_win,0,0);
 
   //initial printing
   normal_status(true,NULL,NULL,NULL);
@@ -63,7 +61,7 @@ void CDisplay::normal_status(bool IsIdle,const char* curdir,const char* filename
     //mode
     if(IsIdle){
         wattron(status_win,COLOR_PAIR(4));
-        mvwprintw(status_win,2,1,"Mode: normal\t\t\tStatus: idle");
+        mvwprintw(status_win,2,1,"Mode: normal\t\tStatus: idle");
         wattroff(status_win,COLOR_PAIR(4));
         //filename
         if(filename){
@@ -110,7 +108,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
     if(IsIdle){
         //mode
         wattron(status_win,COLOR_PAIR(4));
-        mvwprintw(status_win,2,1,"Mode: PMT\t\t\tStatus: Idle");
+        mvwprintw(status_win,2,1,"Mode: PMT\t\tStatus: Idle");
         wattroff(status_win,COLOR_PAIR(4));
         //pulser
         switch(pulser_status)
@@ -120,8 +118,8 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             mvwprintw(status_win,3,1,"LED Pulser: ");
             wattron(status_win,A_BLINK);
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK);
-            wprintw(status_win,"\t\t");
+            wattroff(status_win,A_BLINK);
+            wprintw(status_win,"\t");
             break;
         }
         case -1:
@@ -129,8 +127,8 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             mvwprintw(status_win,3,1,"LED Pulser: ");
             wattron(status_win,A_BLINK | COLOR_PAIR(1));
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK | COLOR_PAIR(1));
-            wprintw(status_win,"\t\t");
+            wattroff(status_win,A_BLINK | COLOR_PAIR(1));
+            wprintw(status_win,"\t");
             break;
         }
         case 1:
@@ -138,8 +136,8 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             mvwprintw(status_win,3,1,"LED Pulser: ");
             wattron(status_win,A_BLINK | COLOR_PAIR(2));
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK | COLOR_PAIR(2));
-            wprintw(status_win,"\t\t");
+            wattroff(status_win,A_BLINK | COLOR_PAIR(2));
+            wprintw(status_win,"\t");
             break;
         }
         }
@@ -151,7 +149,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             wprintw(status_win,"SY1527: ");
             wattron(status_win,A_BLINK);
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK);
+            wattroff(status_win,A_BLINK);
             //wprintw(status_win,"\t\t");
             break;
         }
@@ -160,7 +158,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             wprintw(status_win,"SY1527: ");
             wattron(status_win,A_BLINK | COLOR_PAIR(1));
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            wattroff(status_win,A_BLINK | COLOR_PAIR(1));
             //wprintw(status_win,"\t\t");
             break;
         }
@@ -169,7 +167,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             wprintw(status_win,"SY1527: ");
             wattron(status_win,A_BLINK | COLOR_PAIR(2));
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            wattroff(status_win,A_BLINK | COLOR_PAIR(2));
             //wprintw(status_win,"\t\t");
             break;
         }
@@ -193,7 +191,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             mvwprintw(status_win,3,1,"LED Pulser: ");
             wattron(status_win,A_BLINK);
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK);
+            wattroff(status_win,A_BLINK);
             wprintw(status_win,"\t\t");
             break;
         }
@@ -202,7 +200,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             mvwprintw(status_win,3,1,"LED Pulser: ");
             wattron(status_win,A_BLINK | COLOR_PAIR(1));
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            wattroff(status_win,A_BLINK | COLOR_PAIR(1));
             wprintw(status_win,"\t\t");
             break;
         }
@@ -211,7 +209,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             mvwprintw(status_win,3,1,"LED Pulser: ");
             wattron(status_win,A_BLINK | COLOR_PAIR(2));
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            wattroff(status_win,A_BLINK | COLOR_PAIR(2));
             wprintw(status_win,"\t\t");
             break;
         }
@@ -224,7 +222,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             wprintw(status_win,"SY1527: ");
             wattron(status_win,A_BLINK);
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK);
+            wattroff(status_win,A_BLINK);
             //wprintw(status_win,"\t\t");
             break;
         }
@@ -233,7 +231,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             wprintw(status_win,"SY1527: ");
             wattron(status_win,A_BLINK | COLOR_PAIR(1));
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK | COLOR_PAIR(1));
+            wattroff(status_win,A_BLINK | COLOR_PAIR(1));
             //wprintw(status_win,"\t\t");
             break;
         }
@@ -242,7 +240,7 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
             wprintw(status_win,"SY1527: ");
             wattron(status_win,A_BLINK | COLOR_PAIR(2));
             waddch(status_win,ACS_BLOCK);
-            wattron(status_win,A_BLINK | COLOR_PAIR(2));
+            wattroff(status_win,A_BLINK | COLOR_PAIR(2));
             //wprintw(status_win,"\t\t");
             break;
         }

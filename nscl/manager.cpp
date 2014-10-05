@@ -123,6 +123,7 @@ void CManager::CmdAnalyse()
 
             Sleep(1000);
             CLog("Quit. ");
+            return;
           }
 	    break;
 	  }
@@ -142,7 +143,7 @@ void CManager::CmdAnalyse()
             else
 		  {
 		    pDisplay->output("Config Failed. ");
-		    return;
+            //return;
 		  }
 	      }
 	    break;
@@ -344,6 +345,7 @@ void CManager::CmdAnalyse()
         }
         else{
             isPMT=false;
+            delPMTConfig();
             filename="";
             pDisplay->output("you're in Normal testing mode now");
             pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),"Initial State in Normal testing");
@@ -435,9 +437,13 @@ void CManager::CmdAnalyse()
                   HVStatus=FAILED;
               }
               if(HVStatus==SUCCESS && PulserStatus==SUCCESS)
-                pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Connected");
+                  pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Connected");
+              else if(HVStatus != SUCCESS && PulserStatus == SUCCESS)
+                  pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"HV connection failed");
+              else if(HVStatus == SUCCESS && PulserStatus != SUCCESS)
+                  pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Pulser connection failed");
               else
-                pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Connection failed.Fix it before proceeding");
+                  pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Pulser and HV connection failed");
           }
           break;
       }
@@ -1420,7 +1426,7 @@ void CManager::pmtTesting()
         return;
     }
 
-    raw_filename=raw_dir+"/pedestal/before.dat";
+    raw_filename=raw_dir+"/pedestal/begin.dat";
     fp_raw=fopen(raw_filename.c_str(),"wb");
     if(!fp_raw){
         pDisplay->output("can't open "+raw_filename);
@@ -1430,8 +1436,10 @@ void CManager::pmtTesting()
     fp_log<<tempstr<<endl;
     pDisplay->output(tempstr);
 
+    pPulser->PowerOn(2);
     daqCycle(fp_raw,packet_num);
     fclose(fp_raw);
+    pPulser->PowerOff(2);
 
     tempstr=getTimeStr()+": Pedestal Testing completed";
     fp_log<<tempstr<<endl;
@@ -1579,8 +1587,10 @@ void CManager::pmtTesting()
     fp_log<<tempstr<<endl;
     pDisplay->output(tempstr);
 
+    pPulser->PowerOn(2);
     daqCycle(fp_raw,packet_num);
     fclose(fp_raw);
+    pPulser->PowerOff(2);
 
     tempstr=getTimeStr()+": Pedestal Testing completed";
     fp_log<<tempstr<<endl;
@@ -1618,7 +1628,10 @@ void CManager::_setV(float voltage)
     size_t size=pHVGroup.size();
     for(size_t i=0;i<size;i++){
         pHVGroup[i]->setVSet(voltage);
-        pHVGroup[i]->updateVSet();
+        while(!pHVGroup[i]->updateVSet())
+        {
+            Sleep(100);
+        }
     }
 }
 
@@ -1627,7 +1640,10 @@ void CManager::_setI(float current)
     size_t size=pHVGroup.size();
     for(size_t i=0;i<size;i++){
         pHVGroup[i]->setISet(current);
-        pHVGroup[i]->updateISet();
+        while(!pHVGroup[i]->updateISet())
+        {
+            Sleep(100);
+        }
     }
 }
 
@@ -1636,7 +1652,9 @@ void CManager::_setRup(float rup)
     size_t size=pHVGroup.size();
     for(size_t i=0;i<size;i++){
         pHVGroup[i]->setRampUp(rup);
-        pHVGroup[i]->updateRampUp();
+        while(!pHVGroup[i]->updateRampUp()){
+            Sleep(100);
+        }
     }
 }
 
@@ -1645,7 +1663,10 @@ void CManager::_setRDwn(float rdwn)
     size_t size=pHVGroup.size();
     for(size_t i=0;i<size;i++){
         pHVGroup[i]->setRampDown(rdwn);
-        pHVGroup[i]->updateRampDown();
+        while(!pHVGroup[i]->updateRampDown())
+        {
+            Sleep(100);
+        }
     }
 }
 
@@ -1653,7 +1674,10 @@ void CManager::_powerOn()
 {
     size_t size=pHVGroup.size();
     for(size_t i=0;i<size;i++){
-        pHVGroup[i]->PowerOn();
+        while(!pHVGroup[i]->PowerOn())
+        {
+            Sleep(100);
+        }
     }
 }
 
@@ -1661,7 +1685,10 @@ void CManager::_powerOff()
 {
     size_t size=pHVGroup.size();
     for(size_t i=0;i<size;i++){
-        pHVGroup[i]->PowerOff();
+        while(!pHVGroup[i]->PowerOff())
+        {
+            Sleep(100);
+        }
     }
 }
 
@@ -1691,7 +1718,7 @@ string CManager::_formatHVGroup()
     }
     ss<<"\n";
 
-    ss<<setprecision(2);
+    //ss<<setprecision(2);
     ss<<"\t\tVMon:";
     for(it=config_hv.begin();it!=config_hv.end();it++){
         tempChs=it->second;
@@ -1724,10 +1751,11 @@ void CManager::_PulserInit()
     pPulser->SetShape(1);pPulser->SetShape(2);
     //sychronize
     pPulser->TurnOnFrqConcurrent();
-    pPulser->PhaseInitiate();
+    pPulser->SetFrequency(1,1000);//IMPORTANT:set frequecy must befor setpolarity
+    //pPulser->PhaseInitiate();
+
     //output2 is gate NIM
     pPulser->SetPolarity(2,false);
-    pPulser->SetFrequency(1,1000);
     pPulser->SetVoltageHigh(2,0);
     pPulser->SetVoltageLow(2,-0.8);
     pPulser->SetPulseWidth(2,200);

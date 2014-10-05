@@ -5,12 +5,9 @@
 # Update History:
 	
 ****************************************************/
-#include "global.h"
+#include "config.h"
 #include "curses.h"
 #include <string>
-#include "adc.h"
-
-using namespace std;
 
 class CDisplay
 {
@@ -18,16 +15,34 @@ class CDisplay
   CDisplay();
   virtual ~CDisplay();
  public:
-  void output(string );
+  void output(std::string );
+  void normal_status(bool IsIdle,const char* curdir,const char* filename,const char* info);
+  void pmt_status(bool IsIdle,int pulser_status,int hv_status,const char* testDir,const char* output);
   void prompt();
-  void form( CAdc*,bool );
+  void formPMT();
+  void formSingleModule(Module_Config& config);
+  void formCCU(CC_Config& config_ccu,ModuleConfigFactory& config_modules);
   void form();
   int getCmd();
+  std::string getFilename();
+  std::string getPMTdir();
+  std::string getCurrentDir();
+  std::string getDirname();
+  std::string getModulename();
 
  private:
-  sParm mPara[16];
+  std::string filename;
+  std::string CurrentDir;
+  std::string dirname;
+  std::string PMTdir;
+  std::string module_name;
+  static std::string PMT_prompt;
+  static std::string Normal_prompt;
+
+  bool isPMT;
 
   WINDOW* form_win;
+  WINDOW* status_win;
   WINDOW* prompt_win;
   WINDOW* command_win;
 

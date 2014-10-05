@@ -6,8 +6,9 @@
 	
 ****************************************************/
 
-#include "global.h"
 #include "log.h"
+
+using namespace std;
 
 CLog::CLog( const char* str ,bool isfirst)
 {

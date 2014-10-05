@@ -12,15 +12,20 @@ Wed May  8 14:13:23 2013  Take it from main.h
 #ifndef _MANAGER_H_
 #define _MANAGER_H_
 
-#include "libxxusb.h"
 #include <string>
-#include "global.h"
+#include <vector>
+#include "config.h"
 #include "pthread.h"
-#include "adc.h"
-#include "ccu.h"
+#include "nsclmodule.h"
+#include "CCCUSB.h"
+#include "CCCUSBReadoutList.h"
 #include "display.h"
+//PMT testing
+#include "AFG3252.h"
+#include "PMTTestingConfig.h"
+#include "SYX527.h"
 
-
+#define PMTConfig_PATH "pmt.conf"
 class CManager
 {
  public:
@@ -28,40 +33,92 @@ class CManager
   virtual ~CManager();
 
  private:
-  short mDevNumber;  // Recrod the number of CCUsb device attached to the host
-  xxusb_device_type pDeviceList[ MaxDev ];  // Pt to the CCUsb device list
   std::string mVersion;  // Software Version Number
+  std::string filename;
+  std::string CurDir;
 
-  CAdc* pADC;
-  CCcusb* pCCU;
+  CCCUSB* pCCU;
+  ModuleFactory modules;
+  CC_Config config_cc;
+  ModuleConfigFactory config_module;
+  CCCUSBReadoutList stacklist;
+
+  //PMT testing////////////////////////
+  std::string PMTdir;
+  bool isPMT;
+  bool isPMTConfiged;
+  enum connection_status{UNCON=0,SUCCESS=1,FAILED=-1};
+  connection_status PulserStatus,HVStatus;
+  unsigned long packet_num;
+  double warming_seconds;
+  double stablizing_seconds;
+  float current_limit;
+  float warming_voltage;
+  PMTTestingConfig config_pmt;
+  HVGroup config_hv;
+  std::vector<SYX527_Module*> pHVGroup;
+  AFG3252* pPulser;
+  SYX527* pHVController;
+
+  bool MkDir(const char* dir,char* msg);
+  bool ConfigPMT();
+  bool _configAFG3252();
+  bool _configSYX527();
+  bool _configTesting();
+  void daqCycle(FILE* fp,unsigned long num);
+  void pmtTesting();
+  void delPMTConfig();
+  void _setV(float voltage);
+  void _setI(float current);
+  void _setRup(float rup);
+  void _setRDwn(float rdwn);
+  void _powerOn();
+  void _powerOff();
+  void _HVfeedback();
+  void _PulserInit();
+  std::string _formatHVGroup();
+  void _cleanUp();
+
+  pthread_t mPMTTestingThread;
+  static void* pmtTestingThread(void*);
+  //////////////////////////////////////
+
+  //
   CDisplay* pDisplay;
 
   pthread_t mDisplayThread;
   pthread_t mDaqThread;  // Thread for sending data to guests
 
   // public:
-  bool daqCycle();  // 
+  bool daqCycle();
+  void daqInit();
+  void daqClear();
+  void stackStart();
+  void stackStop();
 
-  CC_Config config_cc;
-  ADC_Config config_adc;
 
  private:
   void welcome();  // Welcome Infomation after running
   bool FirstLoad();
+  bool CcusbDevFind();
+  bool CcusbDevOpen();
   bool ConfigLoad();  // Load config file
+  bool CcudDefaultConfig();
+  bool CcuLoad();
+  bool ModuleLoad();
+  void buildStack();
   bool Config();  // Config CCU and ADC
-  bool CcusbDevFind();  // On finding CCUsb Devices
-  bool CcusbDevOpen();  // for openning ccusb devices indicated by User
+  void delModules();
+  void delModuleConfig();
 
  public:
   static std::string getTimeStr();  // get current time string
 
  private:
-  //  bool lock_isConfiged;
-  bool lock_isChecked;
   bool lock_isStarted;
   bool lock_isConfiged;
   bool lock_isDaqQuited;
+  unsigned int m_hits;
 
   clock_t m_Daq_start, m_Daq_stop;
 
@@ -69,9 +126,6 @@ class CManager
   static void* displayThread( void* );
   static void* daqThread( void* );
 
- private:
-  bool isBind ;
-  unsigned int m_hits;
 };
 
 

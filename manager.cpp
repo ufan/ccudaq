@@ -484,7 +484,7 @@ void CManager::CmdAnalyse()
                 pDisplay->output("config PMT testign first",CDisplay::WARNING_T);
             }
             else{
-                pDisplay->formPMT();
+                pDisplay->formPMT(_formatPMTTesting());
             }
           }
           break;
@@ -1770,6 +1770,30 @@ string CManager::_formatHVGroup()
     ss<<"\n";
 
     return ss.str();
+}
+
+string CManager::_formatPMTTesting()
+{
+    stringstream tempss;
+    //
+    tempss<<" SY1527 IP: "<<pHVController->getIP()<<endl;
+    //
+    tempss<<endl;
+    tempss<<" "<<pPulser->GetName()<<" IP: "<<pPulser->GetIP()<<endl;
+    //
+    tempss<<endl;
+    tempss<<" PMT-testing Info:"<<endl;
+    tempss<<" Warming time: "<< warming_seconds/60<<"min"<<endl;
+    tempss<<" Current limit: "<< current_limit <<"uA"<<endl;
+    tempss<<" Packet_num/transfer: "<< packet_num <<endl;
+    tempss<<" Voltage Step: "<<config_pmt.size()<<endl;
+    PMTTestingConfig::iterator it;
+    for(it=config_pmt.begin();it!=config_pmt.end();it++){
+        tempss<<" "<<it->first<<"V"<<endl;
+    }
+
+    return tempss.str();
+
 }
 
 void CManager::_PulserInit()

@@ -290,7 +290,7 @@ void CDisplay::output( string str,MSGFUCK level )
 
 }
 
-void CDisplay::formPMT()
+void CDisplay::formPMT(string str)
 {
     wclear(form_win);
     //header
@@ -309,6 +309,8 @@ void CDisplay::formPMT()
          pos++;
      }
      wattroff(form_win,A_REVERSE);
+     //
+     mvwprintw(form_win,3,1,str.c_str());
      //
      wrefresh(form_win);
 }

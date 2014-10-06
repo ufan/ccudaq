@@ -23,7 +23,7 @@ class CDisplay
   void pmt_status(bool IsIdle,int pulser_status,int hv_status,const char* testDir,const char* output);
   void scroll_status(const char* msg);
   void prompt();
-  void formPMT();
+  void formPMT(std::string str);
   void formSingleModule(Module_Config& config);
   void formCCU(CC_Config& config_ccu,ModuleConfigFactory& config_modules);
   void formHV(HVGroup& config_hv);

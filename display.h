@@ -18,6 +18,7 @@ class CDisplay
   void output(std::string );
   void normal_status(bool IsIdle,const char* curdir,const char* filename,const char* info);
   void pmt_status(bool IsIdle,int pulser_status,int hv_status,const char* testDir,const char* output);
+  void scroll_status(const char* msg);
   void prompt();
   void formPMT();
   void formSingleModule(Module_Config& config);
@@ -52,11 +53,16 @@ class CDisplay
   int prompt_y;
   int command_x;
   int command_y;
+  int sstatus_x;
+  int sstatus_y;
+
+  attr_t sstatus_attr;
+
   WINDOW* form_win;
   WINDOW* status_win;
   WINDOW* prompt_win;
   WINDOW* command_win;
-
+  WINDOW* sstatus_win;
 };
 
 

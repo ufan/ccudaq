@@ -34,14 +34,18 @@ CDisplay::CDisplay():
   resize_term(term_y,term_x);
   /******************************
    * status     *    prompt     *
-   *            *               *
+   **************               *
+   * sstatus    *               *
    ******************************
    *  form      *    command    *
    *            *               *
    ******************************/
   status_y=17;
+  sstatus_y=5;
   status_x=50;
-  status_win=newwin(status_y,status_x,0,0);
+  sstatus_x=status_x;
+  status_win=newwin(status_y-sstatus_y,status_x,0,0);
+  sstatus_win = newwin(sstatus_y,sstatus_x,status_y-sstatus_y,0);
 
   form_y=term_y-status_y;
   form_x=status_x;
@@ -54,12 +58,17 @@ CDisplay::CDisplay():
   command_y=form_y;
   command_x=prompt_x;
   command_win = newwin(command_y,command_x,status_y,status_x);
-
+  //
   //box(form_win,0,0);
-  box(status_win,2,2);
-
+  //
+  scrollok(command_win,true);
+  scrollok(sstatus_win,true);
+  //
+  sstatus_attr=COLOR_PAIR(3);
+  wattron(sstatus_win,sstatus_attr);
   //initial printing
   normal_status(true,"./",NULL,"Init State");
+  scroll_status("Scroll Area");
   form();
   prompt();
   output("Program Started.");
@@ -214,10 +223,22 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
     wrefresh(status_win);
 }
 
+void CDisplay::scroll_status(const char *msg)
+{
+    wprintw(sstatus_win," %s",msg);
+    waddch(sstatus_win,'\n');
+/*
+    for(int i=0;i<6;i++){
+      wprintw(sstatus_win," %s\n",msg);
+    }
+    */
+    wrefresh(sstatus_win);
+}
+
 void CDisplay::output( string str )
 {
   str += "\n";
-  scrollok(command_win,1);
+  //scrollok(command_win,1);
   waddch(command_win,' ');
   wprintw(command_win, str.c_str() );
 

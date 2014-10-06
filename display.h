@@ -16,7 +16,9 @@ class CDisplay
   CDisplay();
   virtual ~CDisplay();
  public:
-  void output(std::string );
+  enum MSGFUCK {WARNING_T,ERROR_T,NORMAL_T,PMT_T};
+
+  void output(std::string str,MSGFUCK level=NORMAL_T);
   void normal_status(bool IsIdle,const char* curdir,const char* filename,const char* info);
   void pmt_status(bool IsIdle,int pulser_status,int hv_status,const char* testDir,const char* output);
   void scroll_status(const char* msg);
@@ -33,6 +35,8 @@ class CDisplay
   std::string getCurrentDir();
   std::string getDirname();
   std::string getModulename();
+
+
 
  private:
   std::string filename;

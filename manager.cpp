@@ -107,18 +107,18 @@ void CManager::CmdAnalyse()
 	case -1: // error commands ---------------------
 	  {
           if(isPMT)
-                pDisplay->output("Error Command.You're in PMT mode.");
+                pDisplay->output("Error Command.You're in PMT mode.",CDisplay::WARNING_T);
           else
-                pDisplay->output("Error Command.You're in Normal mode");
+                pDisplay->output("Error Command.You're in Normal mode",CDisplay::WARNING_T);
 	    break;
 	  }
 	case 0:  // quit -------------------------------
 	  {
           if(lock_isStarted){
-            pDisplay->output("DAQ cycle is running now.Stop it first");
+            pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
           }
           else{
-            pDisplay->output("Program is going to quit.");
+            pDisplay->output("Program is going to quit.",CDisplay::PMT_T);
 
             Sleep(1000);
             CLog("Quit. ");
@@ -130,18 +130,18 @@ void CManager::CmdAnalyse()
 	  {
 	    if ( true == lock_isStarted )
 	      {
-            pDisplay->output("Can't config while running. ");
+            pDisplay->output("Can't config while running. ",CDisplay::WARNING_T);
 	      }
 	    else
 	      {
             if ( true == Config() )
 		  {
-            pDisplay->output("Config Done. ");
+            pDisplay->output("Config Done. ",CDisplay::PMT_T);
 		    lock_isConfiged = true;
 		  }
             else
 		  {
-		    pDisplay->output("Config Failed. ");
+            pDisplay->output("Config Failed. ",CDisplay::ERROR_T);
             //return;
 		  }
 	      }
@@ -151,24 +151,24 @@ void CManager::CmdAnalyse()
 	  {
           if(isPMT){
               if(!isPMTConfiged){
-                  pDisplay->output("Please config the testing procedure before going");
+                  pDisplay->output("Please config the testing procedure before going",CDisplay::WARNING_T);
                   pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Please config the testing procedure before going");
               }
               else if((PulserStatus != SUCCESS) || (HVStatus != SUCCESS)){
-                  pDisplay->output("Please check the connection and re-config");
+                  pDisplay->output("Please check the connection and re-config",CDisplay::WARNING_T);
                   pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Please check the connection and re-config");
               }
               else if(PMTdir.empty()){
-                  pDisplay->output("Please set testing directory");
+                  pDisplay->output("Please set testing directory",CDisplay::WARNING_T);
                   pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Please set testing directory");
               }
               else{
                   if(lock_isStarted){
-                      pDisplay->output("PMT testing in progress.Wait for it completing");
+                      pDisplay->output("PMT testing in progress.Wait for it completing",CDisplay::WARNING_T);
                   }
                   else{
                       lock_isStarted=true;
-                      pDisplay->output("PMT testing is started.");
+                      pDisplay->output("PMT testing is started.",CDisplay::PMT_T);
                       pDisplay->pmt_status(false,PulserStatus,HVStatus,PMTdir.c_str(),"PMT testing is started.");
 
                       pthread_attr_t attr;
@@ -180,7 +180,7 @@ void CManager::CmdAnalyse()
                       if(err!=0){
                           string tempstr="can't create thread: ";
                           tempstr.append(strerror(err));
-                          pDisplay->output(tempstr);
+                          pDisplay->output(tempstr,CDisplay::ERROR_T);
                       }
                       pthread_attr_destroy(&attr);
                   }
@@ -188,19 +188,19 @@ void CManager::CmdAnalyse()
           }
           else{
             if(filename.empty()){
-                pDisplay->output("Please set the output filename first");
+                pDisplay->output("Please set the output filename first",CDisplay::WARNING_T);
             }
             else{
-                pDisplay->output("DAQ cycle is going to start.");
+                pDisplay->output("DAQ cycle is going to start.",CDisplay::PMT_T);
 
                 if ( true == lock_isStarted )
                 {
-                    pDisplay->output("DAQ cycle is running now.Stop it first");
+                    pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
                 }
                 else
                 {
                     lock_isStarted = true;
-                    pDisplay->output("DAQ cycle is started.");
+                    pDisplay->output("DAQ cycle is started.",CDisplay::PMT_T);
                     pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),"DAQ cycle is started.");
 
                     pthread_attr_t attr;
@@ -212,7 +212,7 @@ void CManager::CmdAnalyse()
                     if(err!=0){
                         string tempstr="can't create thread: ";
                         tempstr.append(strerror(err));
-                        pDisplay->output(tempstr);
+                        pDisplay->output(tempstr,CDisplay::ERROR_T);
                     }
                     pthread_attr_destroy(&attr);
                     m_Daq_start = clock();
@@ -513,7 +513,6 @@ bool CManager::daqCycle()
       stringstream tempstr;
       tempstr<<"can't open file: "<< filename;
       pDisplay->output(tempstr.str().c_str());
-      pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),tempstr.str().c_str());
       return false;
   }
   int status;
@@ -522,8 +521,7 @@ bool CManager::daqCycle()
   while(lock_isStarted){
        status=pCCU->usbRead(buffer,buffersize,&transferCount);
        if(status<0){
-           pDisplay->output("waiting data...");
-           pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),"waiting data...");
+           pDisplay->scroll_status("waiting data...");
        }
        if(transferCount>0){
            writeCount=fwrite(buffer,sizeof(char),transferCount,fp);
@@ -542,8 +540,7 @@ bool CManager::daqCycle()
            if(counter%100==0){
                char msg[100];
                sprintf(msg,"%d packets",counter);
-               pDisplay->output(msg);
-               pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),msg);
+               pDisplay->scroll_status(msg);
            }
        }
   }
@@ -642,12 +639,12 @@ bool CManager::Config()
   if( true == flag )
     {
       CLog("Load Config files successfully. ");
-      pDisplay->output("Load Config files successfully. ");
+      pDisplay->output("Load Config files successfully. ",CDisplay::PMT_T);
     }
   else
     {
       CLog("Failed in Loading Config files. ");
-      pDisplay->output("Failed in Loading Config files. ");
+      pDisplay->output("Failed in Loading Config files. ",CDisplay::ERROR_T);
       return false;
     }
 
@@ -658,12 +655,12 @@ bool CManager::Config()
   if( true == flag )
     {
       CLog("Set CCU successfully");
-      pDisplay->output("Set CCU successfully. ");
+      pDisplay->output("Set CCU successfully. ",CDisplay::PMT_T);
     }
   else
     {
       CLog("Failed in setting CCU");
-      pDisplay->output("Failed in setting CCU. ");
+      pDisplay->output("Failed in setting CCU. ",CDisplay::ERROR_T);
       return false;
     }
 
@@ -686,12 +683,12 @@ bool CManager::Config()
   if( true == flag )
     {
       CLog("Set ADC successfully");
-      pDisplay->output("Set ADC successfully. ");
+      pDisplay->output("Set ADC successfully. ",CDisplay::PMT_T);
     }
   else
     {
       CLog("Failed in Loading ADC Configs");
-      pDisplay->output("Failed in setting ADC. ");
+      pDisplay->output("Failed in setting ADC. ",CDisplay::ERROR_T);
       return false;
     }
 
@@ -1330,7 +1327,7 @@ void CManager::daqCycle(FILE* fp,unsigned long num)
     while(counter<num){
          status=pCCU->usbRead(buffer,buffersize,&transferCount);
          if(status<0){
-             pDisplay->output("waiting data...");
+             pDisplay->output("waiting data...",CDisplay::PMT_T);
          }
          if(transferCount>0){
              counter++;
@@ -1338,7 +1335,7 @@ void CManager::daqCycle(FILE* fp,unsigned long num)
              if((counter%100) == 0){
                  char msg[100];
                  sprintf(msg,"%d packets",counter);
-                 pDisplay->output(msg);
+                 pDisplay->output(msg,CDisplay::PMT_T);
              }
          }
     }
@@ -1373,7 +1370,7 @@ void CManager::pmtTesting()
     string ledconfig_filename;
     string raw_dir=PMTdir+"/raw_data";
     if(!MkDir(raw_dir.c_str(),msg)){
-        pDisplay->output(msg);
+        pDisplay->output(msg,CDisplay::ERROR_T);
         return;
     }
 
@@ -1381,7 +1378,7 @@ void CManager::pmtTesting()
     string log_filename=raw_dir+"/log.txt";
     fp_log.open(log_filename.c_str());
     if(!fp_log){
-        pDisplay->output("can't open "+log_filename);
+        pDisplay->output("can't open "+log_filename,CDisplay::ERROR_T);
         return;
     }
     fp_log << "Logging info of this PMT testing" <<endl;
@@ -1389,7 +1386,7 @@ void CManager::pmtTesting()
     string config_filename=raw_dir+"/pmt.conf";
     fp_config.open(config_filename.c_str());
     if(!fp_config){
-        pDisplay->output("can't open "+config_filename);
+        pDisplay->output("can't open "+config_filename,CDisplay::ERROR_T);
         return;
     }
 
@@ -1399,10 +1396,10 @@ void CManager::pmtTesting()
     _powerOn();
 
     tempstr=getTimeStr() + ": Power On SY1527";
-    pDisplay->output(tempstr);
+    pDisplay->output(tempstr,CDisplay::PMT_T);
     fp_log << tempstr <<endl;
     tempstr=getTimeStr() + ": PMT warming started.";
-    pDisplay->output(tempstr);
+    pDisplay->output(tempstr,CDisplay::PMT_T);
     fp_log << getTimeStr() <<": PMT warming started.Warming Voltage is "<<warming_voltage<<"V"<<endl;
 
     begin=time(NULL);
@@ -1419,7 +1416,7 @@ void CManager::pmtTesting()
     }
 
     tempstr=getTimeStr() + ": PMT warming stopped.";
-    pDisplay->output(tempstr);
+    pDisplay->output(tempstr,CDisplay::PMT_T);
     fp_log << tempstr <<endl;
 
     _HVfeedback();
@@ -1431,19 +1428,19 @@ void CManager::pmtTesting()
     //pedestal testing before LED sweep
     tempstr=raw_dir+"/pedestal";
     if(!MkDir(tempstr.c_str(),msg)){
-        pDisplay->output(msg);
+        pDisplay->output(msg,CDisplay::ERROR_T);
         return;
     }
 
     raw_filename=raw_dir+"/pedestal/begin.dat";
     fp_raw=fopen(raw_filename.c_str(),"wb");
     if(!fp_raw){
-        pDisplay->output("can't open "+raw_filename);
+        pDisplay->output("can't open "+raw_filename,CDisplay::ERROR_T);
         return;
     }
     tempstr=getTimeStr()+": Pedestal Testing before formal testing";
     fp_log<<tempstr<<endl;
-    pDisplay->output(tempstr);
+    pDisplay->output(tempstr,CDisplay::PMT_T);
 
     pPulser->PowerOn(2);
     daqCycle(fp_raw,packet_num);
@@ -1452,7 +1449,7 @@ void CManager::pmtTesting()
 
     tempstr=getTimeStr()+": Pedestal Testing completed";
     fp_log<<tempstr<<endl;
-    pDisplay->output(tempstr);
+    pDisplay->output(tempstr,CDisplay::PMT_T);
 
     //formal testing
     fp_log<<"\nFormal Testing"<<endl;
@@ -1473,7 +1470,7 @@ void CManager::pmtTesting()
         tempss<<raw_dir<<"/"<<tempvolt<<"V";
         hv_dir=tempss.str();
         if(!MkDir(hv_dir.c_str(),msg)){
-            pDisplay->output(msg);
+            pDisplay->output(msg,CDisplay::ERROR_T);
             return;
         }
 
@@ -1481,7 +1478,7 @@ void CManager::pmtTesting()
         ledconfig_filename=hv_dir+"/LED.config";
         fp_ledconfig.open(ledconfig_filename.c_str());
         if(!fp_ledconfig){
-            pDisplay->output("can't open "+ledconfig_filename);
+            pDisplay->output("can't open "+ledconfig_filename,CDisplay::ERROR_T);
             return;
         }
 
@@ -1504,7 +1501,7 @@ void CManager::pmtTesting()
         tempss<<getTimeStr()<<": HV is "<<tempvolt<<"V.Testing begin..."<<endl;
         tempstr=tempss.str();
         fp_log<<tempstr;
-        pDisplay->output(tempstr);
+        pDisplay->output(tempstr,CDisplay::PMT_T);
 
         _HVfeedback();
         fp_log<< _formatHVGroup();
@@ -1521,7 +1518,7 @@ void CManager::pmtTesting()
             //logging
             tempss.clear();tempss.str("");
             tempss<<tempvolt<<"V. LED Amp_"<<i+1;
-            pDisplay->output(tempss.str());
+            pDisplay->output(tempss.str(),CDisplay::PMT_T);
             //light source
             pPulser->SetFrequency(1,tempLEDConfig[i].frq);
             pPulser->SetVoltageHigh(1,tempLEDConfig[i].highV);
@@ -1539,7 +1536,7 @@ void CManager::pmtTesting()
             raw_filename=tempss.str();
             fp_raw=fopen(raw_filename.c_str(),"wb");
             if(!fp_raw){
-                pDisplay->output("can't open "+raw_filename);
+                pDisplay->output("can't open "+raw_filename,CDisplay::ERROR_T);
                 return;
             }
 
@@ -1574,7 +1571,7 @@ void CManager::pmtTesting()
         tempss<<getTimeStr()<<": "<<tempvolt<<"V testing complete."<<endl;
         tempstr=tempss.str();
         fp_log<<tempstr;
-        pDisplay->output(tempstr);
+        pDisplay->output(tempstr,CDisplay::PMT_T);
 
         _HVfeedback();
         fp_log<< _formatHVGroup();
@@ -1589,12 +1586,12 @@ void CManager::pmtTesting()
     raw_filename=raw_dir+"/pedestal/end.dat";
     fp_raw=fopen(raw_filename.c_str(),"wb");
     if(!fp_raw){
-        pDisplay->output("can't open "+raw_filename);
+        pDisplay->output("can't open "+raw_filename,CDisplay::ERROR_T);
         return;
     }
     tempstr=getTimeStr()+": Pedestal Testing after formal testing";
     fp_log<<tempstr<<endl;
-    pDisplay->output(tempstr);
+    pDisplay->output(tempstr,CDisplay::PMT_T);
 
     pPulser->PowerOn(2);
     daqCycle(fp_raw,packet_num);
@@ -1603,12 +1600,12 @@ void CManager::pmtTesting()
 
     tempstr=getTimeStr()+": Pedestal Testing completed";
     fp_log<<tempstr<<endl;
-    pDisplay->output(tempstr);
+    pDisplay->output(tempstr,CDisplay::PMT_T);
 
     //Power off SY1527
     _powerOff();
     tempstr=getTimeStr() + ": Power Off SY1527";
-    pDisplay->output(tempstr);
+    pDisplay->output(tempstr,CDisplay::PMT_T);
     fp_log << tempstr <<endl;
 
     fp_log.close();
@@ -1624,7 +1621,7 @@ void* CManager::pmtTestingThread(void *args)
     if(err!=0){
         string tempstr="can't create HV thread: ";
         tempstr.append(strerror(err));
-        pMan->pDisplay->output(tempstr);
+        pMan->pDisplay->output(tempstr,CDisplay::ERROR_T);
     }
 
     pMan->lock_isDaqQuited = false;

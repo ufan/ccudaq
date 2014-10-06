@@ -260,12 +260,31 @@ void CDisplay::scroll_status(const char *msg)
     wrefresh(sstatus_win);
 }
 
-void CDisplay::output( string str )
+void CDisplay::output( string str,MSGFUCK level )
 {
+  attr_t ATTR;
+  switch (level) {
+  case WARNING_T:
+      ATTR=COLOR_PAIR(3);
+      break;
+  case ERROR_T:
+      ATTR=COLOR_PAIR(1);
+      break;
+  case NORMAL_T:
+      ATTR=COLOR_PAIR(7);
+      break;
+  case PMT_T:
+      ATTR=COLOR_PAIR(5);
+      break;
+  default:
+      break;
+  }
+  //
+  wattron(command_win,ATTR);
   str += "\n";
-  //scrollok(command_win,1);
   waddch(command_win,' ');
   wprintw(command_win, str.c_str() );
+  wattroff(command_win,ATTR);
 
   wrefresh(command_win);
 

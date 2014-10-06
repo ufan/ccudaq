@@ -24,7 +24,7 @@ link_directories(${PDC_LIBRARY_DIR})
 add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DPDC_DLL_BUILD)
 
 #libusb
-set(XXUSB_DIR ${ccudaq_SOURCE_DIR}/libxxusb)
+set(XXUSB_DIR ${ccudaq_SOURCE_DIR}/libusb_win32)
 set(XXUSB_INCLUDE_DIR ${XXUSB_DIR}/include)
 set(XXUSB_LIBRARY_DIR ${XXUSB_DIR}/lib)
 set(XXUSB_LIBRARIES libusb.lib)

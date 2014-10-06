@@ -11,7 +11,8 @@ Wed May  8 14:17:58 2013 Take it from main.cpp
 #include "log.h"
 
 #include <iostream>
-#include "stdio.h"
+#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <fstream>
 #include <sstream>
@@ -174,9 +175,14 @@ void CManager::CmdAnalyse()
                       pthread_attr_init(&attr);
                       pthread_attr_setdetachstate( &attr ,
                            PTHREAD_CREATE_DETACHED);
-                      pthread_create( &mPMTTestingThread , NULL ,
+                      int err=pthread_create( &mPMTTestingThread , &attr,
                           pmtTestingThread , this );
-
+                      if(err!=0){
+                          string tempstr="can't create thread: ";
+                          tempstr.append(strerror(err));
+                          pDisplay->output(tempstr);
+                      }
+                      pthread_attr_destroy(&attr);
                   }
               }
           }
@@ -201,9 +207,14 @@ void CManager::CmdAnalyse()
                     pthread_attr_init(&attr);
                     pthread_attr_setdetachstate( &attr ,
 					     PTHREAD_CREATE_DETACHED);
-                    pthread_create( &mDaqThread , NULL ,
+                    int err=pthread_create( &mDaqThread , &attr ,
                         daqThread , this );
-
+                    if(err!=0){
+                        string tempstr="can't create thread: ";
+                        tempstr.append(strerror(err));
+                        pDisplay->output(tempstr);
+                    }
+                    pthread_attr_destroy(&attr);
                     m_Daq_start = clock();
                 }
             }

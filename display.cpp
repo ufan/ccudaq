@@ -161,27 +161,30 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
     case 0:
     {
         mvwprintw(status_win,4,1,"LED Pulser: ");
-        wattron(status_win,A_BLINK);
+        wattron(status_win,A_BOLD);
         waddch(status_win,ACS_BLOCK);
-        wattroff(status_win,A_BLINK);
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BOLD);
         wprintw(status_win,"\t\t");
         break;
     }
     case -1:
     {
         mvwprintw(status_win,4,1,"LED Pulser: ");
-        wattron(status_win,A_BLINK | COLOR_PAIR(1));
+        wattron(status_win,A_BOLD | COLOR_PAIR(1));
         waddch(status_win,ACS_BLOCK);
-        wattroff(status_win,A_BLINK | COLOR_PAIR(1));
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BOLD | COLOR_PAIR(1));
         wprintw(status_win,"\t\t");
         break;
     }
     case 1:
     {
         mvwprintw(status_win,4,1,"LED Pulser: ");
-        wattron(status_win,A_BLINK | COLOR_PAIR(2));
+        wattron(status_win,A_BOLD | COLOR_PAIR(2));
         waddch(status_win,ACS_BLOCK);
-        wattroff(status_win,A_BLINK | COLOR_PAIR(2));
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BOLD | COLOR_PAIR(2));
         wprintw(status_win,"\t\t");
         break;
     }
@@ -192,25 +195,28 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
     case 0:
     {
         wprintw(status_win,"SY1527: ");
-        wattron(status_win,A_BLINK);
+        wattron(status_win,A_BOLD);
         waddch(status_win,ACS_BLOCK);
-        wattroff(status_win,A_BLINK);
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BOLD);
         break;
     }
     case -1:
     {
         wprintw(status_win,"SY1527: ");
-        wattron(status_win,A_BLINK | COLOR_PAIR(1));
+        wattron(status_win,A_BOLD | COLOR_PAIR(1));
         waddch(status_win,ACS_BLOCK);
-        wattroff(status_win,A_BLINK | COLOR_PAIR(1));
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BOLD | COLOR_PAIR(1));
         break;
     }
     case 1:
     {
         wprintw(status_win,"SY1527: ");
-        wattron(status_win,A_BLINK | COLOR_PAIR(2));
+        wattron(status_win,A_BOLD | COLOR_PAIR(2));
         waddch(status_win,ACS_BLOCK);
-        wattroff(status_win,A_BLINK | COLOR_PAIR(2));
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BOLD | COLOR_PAIR(2));
         break;
     }
     }

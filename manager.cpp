@@ -1003,7 +1003,7 @@ bool CManager::CcudDefaultConfig()
     //Global: 4096 buffer length,extra buffer header
     config_cc.setGlobalMode(0x100);
     //Delay:  100us LAM timeout,8us trigger delay
-    config_cc.setDelays(0x6408);
+    config_cc.setDelays(0x640a);
     //DeviceSource: event trigger as scalor_a source
     config_cc.setSelectUserDevice(0x4);
 

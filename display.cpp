@@ -30,7 +30,7 @@ CDisplay::CDisplay():
   init_pair(7, COLOR_WHITE,   COLOR_BLACK);
 
   //terminal sizes,
-  term_y=52;term_x=120;
+  term_y=52;term_x=150;
   resize_term(term_y,term_x);
   /******************************
    * status     *    prompt     *
@@ -94,9 +94,9 @@ void CDisplay::normal_status(bool IsIdle,const char* curdir,const char* filename
     wattroff(status_win,A_REVERSE);
     //mode
     if(IsIdle){
-        wattron(status_win,COLOR_PAIR(3));
+        wattron(status_win,COLOR_PAIR(5));
         mvwprintw(status_win,2,1,"Mode:  normal\t\tStatus:  idle");
-        wattroff(status_win,COLOR_PAIR(3));
+        wattroff(status_win,COLOR_PAIR(5));
     }
     else{
         wattron(status_win,COLOR_PAIR(3));
@@ -379,52 +379,206 @@ void CDisplay::prompt()
     }
     wattroff(prompt_win,A_REVERSE);
 
-  // config
-  mvwprintw(prompt_win,3,1,"Type ");
-  wattron(prompt_win,COLOR_PAIR(1));
-  wattron(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,3,6,"config");
-  wattroff(prompt_win,COLOR_PAIR(1));
-  wattroff(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,3,12," to Config devices");
+    //sub_title
+    char* sub_header;
+    int common_pos,normal_pos,pmt_pos;
+    int space=(prompt_x-6)/3;
 
-  // check
-  mvwprintw(prompt_win,4,1,"Type ");
-  wattron(prompt_win,COLOR_PAIR(1));
-  wattron(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,4,6,"check ");
-  wattroff(prompt_win,COLOR_PAIR(1));
-  wattroff(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,4,12," to Check customers");
+    common_pos=1;
+    sub_header=const_cast<char*>("COMMON");
+    wattron(prompt_win,COLOR_PAIR(5)|A_REVERSE);
+    mvwprintw(prompt_win,2,common_pos+(space-strlen(sub_header))/2,"%s",sub_header);
+    wattroff(prompt_win,COLOR_PAIR(5)|A_REVERSE);
 
-  // start
-  mvwprintw(prompt_win,5,1,"Type ");
-  wattron(prompt_win,COLOR_PAIR(1));
-  wattron(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,5,6,"start ");
-  wattroff(prompt_win,COLOR_PAIR(1));
-  wattroff(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,5,12," to Start DAQ cycle");
+    normal_pos=common_pos+space+2;
+    sub_header=const_cast<char*>("NORMAL");
+    wattron(prompt_win,COLOR_PAIR(5)|A_REVERSE);
+    mvwprintw(prompt_win,2,normal_pos+(space-strlen(sub_header))/2,"%s",sub_header);
+    wattroff(prompt_win,COLOR_PAIR(5)|A_REVERSE);
 
-  // stop
-  mvwprintw(prompt_win,6,1,"Type ");
-  wattron(prompt_win,COLOR_PAIR(1));
-  wattron(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,6,6,"stop  ");
-  wattroff(prompt_win,COLOR_PAIR(1));
-  wattroff(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,6,12," to Stop DAQ cycle");
+    pmt_pos=normal_pos+space+2;
+    sub_header=const_cast<char*>("PMT");
+    wattron(prompt_win,COLOR_PAIR(5)|A_REVERSE);
+    mvwprintw(prompt_win,2,pmt_pos+(space-strlen(sub_header))/2,"%s",sub_header);
+    wattroff(prompt_win,COLOR_PAIR(5)|A_REVERSE);
 
-  // quit
-  mvwprintw(prompt_win,7,1,"Type ");
-  wattron(prompt_win,COLOR_PAIR(1));
-  wattron(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,7,6,"quit  ");
-  wattroff(prompt_win,COLOR_PAIR(1));
-  wattroff(prompt_win,A_UNDERLINE);
-  mvwprintw(prompt_win,7,12," to Quit");
+    //
+    char* command;
+    char* description;
+    attr_t command_attr=COLOR_PAIR(5)|A_BOLD;
+    attr_t description_attr=COLOR_PAIR(3);
 
-  wrefresh(prompt_win);
+    //common command
+    int start_row=3;
+
+    start_row++;
+    command=const_cast<char*>("quit");
+    description=const_cast<char*>(":close the program");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,common_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,common_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("start");
+    description=const_cast<char*>(":start daq cycle");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,common_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,common_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("stop");
+    description=const_cast<char*>(":stop daq cycle");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,common_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,common_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("config");
+    description=const_cast<char*>(":config daq system");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,common_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,common_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("show_ccu");
+    description=const_cast<char*>(":CC-USB's config");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,common_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,common_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("show_module");
+    description=const_cast<char*>(":a module's config");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,common_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,common_pos+strlen(command)+1,"%s",description);
+    start_row++;
+    description=const_cast<char*>(" need module's name");
+    mvwprintw(prompt_win,start_row,common_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("mkdir");
+    description=const_cast<char*>(":make a new directory");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,common_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,common_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    //normal mode command
+    start_row=3;
+
+    start_row++;
+    command=const_cast<char*>("pmt");
+    description=const_cast<char*>(":change to PMT mode");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,normal_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,normal_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("open");
+    description=const_cast<char*>(":save data to file");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,normal_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,normal_pos+strlen(command)+1,"%s",description);
+    start_row++;
+    description=const_cast<char*>(" Need new filename");
+    mvwprintw(prompt_win,start_row,normal_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("curdir");
+    description=const_cast<char*>(":new output dir");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,normal_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,normal_pos+strlen(command)+1,"%s",description);
+    start_row++;
+    description=const_cast<char*>(" Need dir's name");
+    mvwprintw(prompt_win,start_row,normal_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+    //pmt mode command
+    start_row=3;
+
+    start_row++;
+    command=const_cast<char*>("exit");
+    description=const_cast<char*>(":change to Normal mode");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("config_pmt");
+    description=const_cast<char*>(":config PMT testing");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("connect");
+    description=const_cast<char*>(":check HV and Pulser");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("setdir");
+    description=const_cast<char*>(":set testing dir");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos+strlen(command)+1,"%s",description);
+    start_row++;
+    description=const_cast<char*>(" Need existing dir's name");
+    mvwprintw(prompt_win,start_row,pmt_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+
+    start_row++;
+    command=const_cast<char*>("show_pmt");
+    description=const_cast<char*>(":PMT-tesing summary");
+    wattron(prompt_win,command_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos,"%s",command);
+    wattroff(prompt_win,command_attr);
+    wattron(prompt_win,description_attr);
+    mvwprintw(prompt_win,start_row,pmt_pos+strlen(command)+1,"%s",description);
+    wattroff(prompt_win,description_attr);
+    //
+    wrefresh(prompt_win);
 }
 
 int CDisplay::getCmd()

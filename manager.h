@@ -80,7 +80,9 @@ class CManager
   void _cleanUp();
 
   pthread_t mPMTTestingThread;
+  pthread_t mHVmonitorThread;
   static void* pmtTestingThread(void*);
+  static void* HVMonitorThread(void*);
   //////////////////////////////////////
 
   //

@@ -30,7 +30,7 @@ CDisplay::CDisplay():
   init_pair(7, COLOR_WHITE,   COLOR_BLACK);
 
   //terminal sizes,
-  term_y=52;term_x=150;
+  term_y=52;term_x=155;
   resize_term(term_y,term_x);
   /******************************
    * status     *    prompt     *
@@ -42,7 +42,7 @@ CDisplay::CDisplay():
    ******************************/
   status_y=17;
   sstatus_y=5;
-  status_x=50;
+  status_x=55;
   sstatus_x=status_x;
   status_win=newwin(status_y-sstatus_y,status_x,0,0);
   sstatus_win = newwin(sstatus_y,sstatus_x,status_y-sstatus_y,0);
@@ -70,6 +70,25 @@ CDisplay::CDisplay():
   normal_status(true,"./",NULL,"Init State");
   scroll_status("Scroll Area");
   form();
+  /*
+  HVGroup config;
+  HVChannels channels;
+  HVChannel tempch;
+  for(int i=0;i<5;i++){
+      tempch.ch_id=i;
+      sprintf(tempch.ch_name,"PMT%d",i+1);
+      tempch.slot=13;
+      tempch.V0Set=1200+i;
+      tempch.I0Set=200+i;
+      tempch.VMon=1150+i;
+      tempch.IMon=45+i;
+      tempch.state=true;
+
+      channels.push_back(tempch);
+  }
+  config[13]=channels;
+  formHV(config);
+  */
   prompt();
   output("Program Started.");
 
@@ -365,6 +384,70 @@ void CDisplay::formCCU(CC_Config &config_ccu, ModuleConfigFactory &config_module
     wrefresh(form_win);
 }
 
+void CDisplay::formHV(HVGroup &config_hv)
+{
+    wclear(form_win);
+    //title
+     char header[256]="High Voltage Feedback";
+     wattron(form_win,A_REVERSE);
+     int pos=1;
+     int temp=(form_x-strlen(header))/2-1;
+     while(pos<temp){
+         mvwaddch(form_win,1,pos,' ');
+         pos++;
+     }
+     mvwprintw(form_win,1,temp,"%s",header);
+     pos=temp+strlen(header);
+     while(pos<form_x){
+         mvwaddch(form_win,1,pos,' ');
+         pos++;
+     }
+     wattroff(form_win,A_REVERSE);
+
+    //colume header
+    wattron(form_win,COLOR_PAIR(5)|A_REVERSE);
+    mvwprintw(form_win,3,1,"Name\tCH\tVSet\tISet\tVMon\tIMon\tState");
+    wattroff(form_win,COLOR_PAIR(5)|A_REVERSE);
+     //columes
+    HVGroup::iterator it;
+    HVChannels tempChs;
+    size_t channels_size;
+    int row_num=3;
+
+    for(it=config_hv.begin();it!=config_hv.end();it++){
+        tempChs=it->second;
+        channels_size=tempChs.size();
+        for(size_t j=0;j<channels_size;j++){
+            formatChannel(++row_num,tempChs[j]);
+        }
+    }
+    //
+    wrefresh(form_win);
+}
+
+void CDisplay::formatChannel(int row, HVChannel &channel)
+{
+    attr_t ATTR;
+    if(row%2){
+        ATTR=COLOR_PAIR(6);
+    }
+    else{
+        ATTR=COLOR_PAIR(7);
+    }
+
+    wattron(form_win,ATTR);
+    mvwprintw(form_win,row,1,"%s\t%d_%d\t%-7.1f\t%-7.1f\t%-7.1f\t%-7.1f\t",
+              channel.ch_name,channel.slot,channel.ch_id,channel.V0Set,
+              channel.I0Set,channel.VMon,channel.IMon);
+    if(channel.state){
+        wprintw(form_win,"On");
+    }
+    else{
+        wprintw(form_win,"Off");
+    }
+    wattroff(form_win,ATTR);
+}
+
 void CDisplay::form()
 {
   // tittles
@@ -384,7 +467,7 @@ void CDisplay::form()
     }
     wattroff(form_win,A_REVERSE);
 
-  wrefresh(form_win);
+    wrefresh(form_win);
 }
 
 void CDisplay::prompt()

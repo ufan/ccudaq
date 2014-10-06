@@ -6,6 +6,7 @@
 	
 ****************************************************/
 #include "config.h"
+#include "SYX527.h"
 #include "curses.h"
 #include <string>
 
@@ -23,6 +24,8 @@ class CDisplay
   void formPMT();
   void formSingleModule(Module_Config& config);
   void formCCU(CC_Config& config_ccu,ModuleConfigFactory& config_modules);
+  void formHV(HVGroup& config_hv);
+  void formatChannel(int row,HVChannel& channel);
   void form();
   int getCmd();
   std::string getFilename();

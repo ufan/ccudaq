@@ -1618,10 +1618,21 @@ void CManager::pmtTesting()
 void* CManager::pmtTestingThread(void *args)
 {
     CManager* pMan = ( CManager* )args;
+    //
+    int err=pthread_create( &pMan->mHVmonitorThread , NULL,
+        HVMonitorThread , args );
+    if(err!=0){
+        string tempstr="can't create HV thread: ";
+        tempstr.append(strerror(err));
+        pMan->pDisplay->output(tempstr);
+    }
 
     pMan->lock_isDaqQuited = false;
 
     pMan->pmtTesting();
+
+    pthread_cancel(pMan->mHVmonitorThread);
+    pthread_join(pMan->mHVmonitorThread,NULL);
 
     pMan->PMTdir.clear();
     pMan->lock_isStarted = false;
@@ -1631,6 +1642,21 @@ void* CManager::pmtTestingThread(void *args)
 
     return NULL;
 }
+
+void* CManager::HVMonitorThread(void *args)
+{
+    CManager* pMan=(CManager*)args;
+
+    while(1){
+        pMan->_HVfeedback();
+        pMan->pDisplay->formHV(pMan->config_hv);
+        //
+        pthread_testcancel();
+        //
+        Sleep(1500);
+    }
+}
+
 
 void CManager::_setV(float voltage)
 {

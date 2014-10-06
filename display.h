@@ -41,6 +41,17 @@ class CDisplay
 
   bool isPMT;
 
+
+  int term_x;
+  int term_y;
+  int form_x;
+  int form_y;
+  int status_x;
+  int status_y;
+  int prompt_x;
+  int prompt_y;
+  int command_x;
+  int command_y;
   WINDOW* form_win;
   WINDOW* status_win;
   WINDOW* prompt_win;

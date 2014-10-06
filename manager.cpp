@@ -52,12 +52,10 @@ CManager::CManager()
   pDisplay = NULL;
   pCCU = NULL;
 
-  if( true == FirstLoad() )
+  //if( true == FirstLoad() )
     {
       pDisplay = new CDisplay();
-      Config();
-      //pthread_create( &mDisplayThread , NULL , displayThread , this );
-
+      //Config();
       CmdAnalyse();
     }
 }
@@ -233,7 +231,7 @@ void CManager::CmdAnalyse()
             {
                 lock_isStarted = false;
                 pDisplay->output("Waitting for DAQ quiting... ");
-                //pDisplay->normal_status(false,filename.c_str(),"Waitting for DAQ quiting... ");
+                pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),"Waitting for DAQ quiting... ");
                 while( false == lock_isDaqQuited );
 
                 string tempstr;
@@ -255,7 +253,7 @@ void CManager::CmdAnalyse()
                 sprintf( buf2 , "    hits = %d " , m_hits);
                 pDisplay->output( buf2 );
                 tempstr+=buf2;
-                pDisplay->normal_status(true,CurDir.c_str(),NULL,tempstr.c_str());
+                pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),tempstr.c_str());
             }
             else
             {
@@ -384,7 +382,7 @@ void CManager::CmdAnalyse()
             CurDir=pDisplay->getCurrentDir();
             string tempstr="Files will be saved to directory: "+ CurDir;
             pDisplay->output(tempstr);
-            pDisplay->normal_status(true,CurDir.c_str(),NULL,tempstr.c_str());
+            pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),tempstr.c_str());
           }
           break;
       }
@@ -520,7 +518,7 @@ bool CManager::daqCycle()
            writeCount=fwrite(buffer,sizeof(char),transferCount,fp);
            if(writeCount != transferCount){
                pDisplay->output("data written error, DAQ cycle terminated!");
-               pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),"data written error, DAQ cycle terminated!");
+               pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),"data written error, DAQ cycle terminated!");
                fclose(fp);
                stackStop();
                while(transferCount>0){

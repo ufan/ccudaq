@@ -8,15 +8,17 @@
 
 #include "display.h"
 #include "curses.h"
+#include <string.h>
 
 using namespace std;
-string  CDisplay::PMT_prompt="pmt_$$";
+string  CDisplay::PMT_prompt="PMT_$$";
 string CDisplay::Normal_prompt=">>";
 
 CDisplay::CDisplay():
     isPMT(false),CurrentDir("./")
 {
   initscr();
+
   //init color pairs
   start_color();
   init_pair(1, COLOR_RED,     COLOR_BLACK);
@@ -26,18 +28,38 @@ CDisplay::CDisplay():
   init_pair(5, COLOR_CYAN,    COLOR_BLACK);
   init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
   init_pair(7, COLOR_WHITE,   COLOR_BLACK);
+
   //terminal sizes,
-  //it is hard-coded now.may be better to be parametrized
-  resize_term(52,80);
-  status_win=newwin(18,40,0,0);
-  form_win = newwin(34,40,18,0);
-  prompt_win = newwin(18,40,0,40);
-  command_win = newwin(34,40,18,40);
+  term_y=52;term_x=120;
+  resize_term(term_y,term_x);
+  /******************************
+   * status     *    prompt     *
+   *            *               *
+   ******************************
+   *  form      *    command    *
+   *            *               *
+   ******************************/
+  status_y=17;
+  status_x=50;
+  status_win=newwin(status_y,status_x,0,0);
+
+  form_y=term_y-status_y;
+  form_x=status_x;
+  form_win = newwin(form_y,form_x,status_y,0);
+
+  prompt_y=status_y;
+  prompt_x=term_x-status_x;
+  prompt_win = newwin(prompt_y,prompt_x,0,status_x);
+
+  command_y=form_y;
+  command_x=prompt_x;
+  command_win = newwin(command_y,command_x,status_y,status_x);
 
   //box(form_win,0,0);
+  box(status_win,2,2);
 
   //initial printing
-  normal_status(true,NULL,NULL,NULL);
+  normal_status(true,"./",NULL,"Init State");
   form();
   prompt();
   output("Program Started.");
@@ -55,41 +77,43 @@ void CDisplay::normal_status(bool IsIdle,const char* curdir,const char* filename
 {
     wclear(status_win);
     //header
+    char header[256]="Status Information";
     wattron(status_win,A_REVERSE);
-    mvwprintw(status_win,1,1,"      Status Information      ");
+    int pos=1;
+    int temp=(status_x-strlen(header))/2-1;
+    while(pos<temp){
+        mvwaddch(status_win,1,pos,' ');
+        pos++;
+    }
+    mvwprintw(status_win,1,temp,"%s",header);
+    pos=temp+strlen(header);
+    while(pos<status_x){
+        mvwaddch(status_win,1,pos,' ');
+        pos++;
+    }
     wattroff(status_win,A_REVERSE);
     //mode
     if(IsIdle){
-        wattron(status_win,COLOR_PAIR(4));
-        mvwprintw(status_win,2,1,"Mode: normal\t\tStatus: idle");
-        wattroff(status_win,COLOR_PAIR(4));
-        //filename
-        if(filename){
-            //filename
-            mvwprintw(status_win,4,1,"CurrentDir: %s",curdir);
-			mvwprintw(status_win,5,1,"FileName: %s",filename);
-            mvwprintw(status_win,7,1,"Info:");
-            mvwprintw(status_win,8,1,"No DAQ Cycle Running.");
-        }
-        else{
-            //other info
-			mvwprintw(status_win,4,1,"CurrentDir: %s",curdir);
-			mvwprintw(status_win,5,1,"FileName: NOT SETTED");
-            mvwprintw(status_win,7,1,"Info:");
-            mvwprintw(status_win,8,1,"No DAQ Cycle Running");
-        }
+        wattron(status_win,COLOR_PAIR(3));
+        mvwprintw(status_win,2,1,"Mode:  normal\t\tStatus:  idle");
+        wattroff(status_win,COLOR_PAIR(3));
     }
     else{
-        wattron(status_win,COLOR_PAIR(4));
-        mvwprintw(status_win,2,1,"Mode: normal\t\t\tStatus: DAQ Cycle");
-        wattroff(status_win,COLOR_PAIR(4));
-        //filename
-		mvwprintw(status_win,4,1,"CurrentDir: %s",curdir);
-        mvwprintw(status_win,5,1,"FileName: %s",filename);
-        //other info
-        mvwprintw(status_win,7,1,"Info:");
-        mvwprintw(status_win,8,1,"%s",info);
+        wattron(status_win,COLOR_PAIR(3));
+        mvwprintw(status_win,2,1,"Mode:  normal\t\tStatus:  DAQ cycle");
+        wattroff(status_win,COLOR_PAIR(3));
     }
+    //filename
+    if(filename==NULL || strlen(filename)==0){
+        mvwprintw(status_win,4,1,"CurrentDir: %s",curdir);
+        mvwprintw(status_win,6,1,"FileName: NOT SET");
+    }
+    else{
+        mvwprintw(status_win,4,1,"CurrentDir: %s",curdir);
+        mvwprintw(status_win,6,1,"FileName: %s",filename);
+    }
+    mvwprintw(status_win,8,1,"Info:");
+    mvwprintw(status_win,9,1,"%s",info);
 
     wrefresh(status_win);
 }
@@ -101,157 +125,92 @@ void CDisplay::pmt_status(bool IsIdle,int pulser_status,int hv_status,const char
 {
     wclear(status_win);
    //header
+    char header[256]="Status Information";
     wattron(status_win,A_REVERSE);
-    mvwprintw(status_win,1,1,"      Status Information      ");
+    int pos=1;
+    int temp=(status_x-strlen(header))/2-1;
+    while(pos<temp){
+        mvwaddch(status_win,1,pos,' ');
+        pos++;
+    }
+    mvwprintw(status_win,1,temp,"%s",header);
+    pos=temp+strlen(header);
+    while(pos<status_x){
+        mvwaddch(status_win,1,pos,' ');
+        pos++;
+    }
     wattroff(status_win,A_REVERSE);
-
+    //mode
+    wattron(status_win,COLOR_PAIR(3));
     if(IsIdle){
-        //mode
-        wattron(status_win,COLOR_PAIR(4));
         mvwprintw(status_win,2,1,"Mode: PMT\t\tStatus: Idle");
-        wattroff(status_win,COLOR_PAIR(4));
-        //pulser
-        switch(pulser_status)
-        {
-        case 0:
-        {
-            mvwprintw(status_win,3,1,"LED Pulser: ");
-            wattron(status_win,A_BLINK);
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK);
-            wprintw(status_win,"\t");
-            break;
-        }
-        case -1:
-        {
-            mvwprintw(status_win,3,1,"LED Pulser: ");
-            wattron(status_win,A_BLINK | COLOR_PAIR(1));
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK | COLOR_PAIR(1));
-            wprintw(status_win,"\t");
-            break;
-        }
-        case 1:
-        {
-            mvwprintw(status_win,3,1,"LED Pulser: ");
-            wattron(status_win,A_BLINK | COLOR_PAIR(2));
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK | COLOR_PAIR(2));
-            wprintw(status_win,"\t");
-            break;
-        }
-        }
-        //hv
-        switch(hv_status)
-        {
-        case 0:
-        {
-            wprintw(status_win,"SY1527: ");
-            wattron(status_win,A_BLINK);
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK);
-            //wprintw(status_win,"\t\t");
-            break;
-        }
-        case -1:
-        {
-            wprintw(status_win,"SY1527: ");
-            wattron(status_win,A_BLINK | COLOR_PAIR(1));
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK | COLOR_PAIR(1));
-            //wprintw(status_win,"\t\t");
-            break;
-        }
-        case 1:
-        {
-            wprintw(status_win,"SY1527: ");
-            wattron(status_win,A_BLINK | COLOR_PAIR(2));
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK | COLOR_PAIR(2));
-            //wprintw(status_win,"\t\t");
-            break;
-        }
-        }
-        //test dir
-        mvwprintw(status_win,5,1,"Testing Dir:  %s",testDir);
-        //other info
-        mvwprintw(status_win,7,1,"Info:");
-        mvwprintw(status_win,8,1,"%s",output);
     }
-    else{
-        //mode
-        wattron(status_win,COLOR_PAIR(4));
-        mvwprintw(status_win,2,1,"Mode: PMT\t\t\tStatus: BUSY");
-        wattroff(status_win,COLOR_PAIR(4));
-        //pulser
-        switch(pulser_status)
-        {
-        case 0:
-        {
-            mvwprintw(status_win,3,1,"LED Pulser: ");
-            wattron(status_win,A_BLINK);
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK);
-            wprintw(status_win,"\t\t");
-            break;
-        }
-        case -1:
-        {
-            mvwprintw(status_win,3,1,"LED Pulser: ");
-            wattron(status_win,A_BLINK | COLOR_PAIR(1));
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK | COLOR_PAIR(1));
-            wprintw(status_win,"\t\t");
-            break;
-        }
-        case 1:
-        {
-            mvwprintw(status_win,3,1,"LED Pulser: ");
-            wattron(status_win,A_BLINK | COLOR_PAIR(2));
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK | COLOR_PAIR(2));
-            wprintw(status_win,"\t\t");
-            break;
-        }
-        }
-        //hv
-        switch(hv_status)
-        {
-        case 0:
-        {
-            wprintw(status_win,"SY1527: ");
-            wattron(status_win,A_BLINK);
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK);
-            //wprintw(status_win,"\t\t");
-            break;
-        }
-        case -1:
-        {
-            wprintw(status_win,"SY1527: ");
-            wattron(status_win,A_BLINK | COLOR_PAIR(1));
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK | COLOR_PAIR(1));
-            //wprintw(status_win,"\t\t");
-            break;
-        }
-        case 1:
-        {
-            wprintw(status_win,"SY1527: ");
-            wattron(status_win,A_BLINK | COLOR_PAIR(2));
-            waddch(status_win,ACS_BLOCK);
-            wattroff(status_win,A_BLINK | COLOR_PAIR(2));
-            //wprintw(status_win,"\t\t");
-            break;
-        }
-        }
-        //test dir
-        mvwprintw(status_win,5,1,"Testing Dir:  %s",testDir);
-        //other info
-        mvwprintw(status_win,7,1,"Info:");
-        mvwprintw(status_win,8,1,"%s",output);
+    wattroff(status_win,COLOR_PAIR(3));
+    //pulser
+    switch(pulser_status)
+    {
+    case 0:
+    {
+        mvwprintw(status_win,4,1,"LED Pulser: ");
+        wattron(status_win,A_BLINK);
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BLINK);
+        wprintw(status_win,"\t\t");
+        break;
     }
-
+    case -1:
+    {
+        mvwprintw(status_win,4,1,"LED Pulser: ");
+        wattron(status_win,A_BLINK | COLOR_PAIR(1));
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BLINK | COLOR_PAIR(1));
+        wprintw(status_win,"\t\t");
+        break;
+    }
+    case 1:
+    {
+        mvwprintw(status_win,4,1,"LED Pulser: ");
+        wattron(status_win,A_BLINK | COLOR_PAIR(2));
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BLINK | COLOR_PAIR(2));
+        wprintw(status_win,"\t\t");
+        break;
+    }
+    }
+    //hv
+    switch(hv_status)
+    {
+    case 0:
+    {
+        wprintw(status_win,"SY1527: ");
+        wattron(status_win,A_BLINK);
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BLINK);
+        break;
+    }
+    case -1:
+    {
+        wprintw(status_win,"SY1527: ");
+        wattron(status_win,A_BLINK | COLOR_PAIR(1));
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BLINK | COLOR_PAIR(1));
+        break;
+    }
+    case 1:
+    {
+        wprintw(status_win,"SY1527: ");
+        wattron(status_win,A_BLINK | COLOR_PAIR(2));
+        waddch(status_win,ACS_BLOCK);
+        wattroff(status_win,A_BLINK | COLOR_PAIR(2));
+        break;
+    }
+    }
+    //test dir
+    mvwprintw(status_win,6,1,"Testing Dir:  %s",testDir);
+    //other info
+    mvwprintw(status_win,8,1,"Info:");
+    mvwprintw(status_win,9,1,"%s",output);
+    //
     wrefresh(status_win);
 }
 
@@ -259,6 +218,7 @@ void CDisplay::output( string str )
 {
   str += "\n";
   scrollok(command_win,1);
+  waddch(command_win,' ');
   wprintw(command_win, str.c_str() );
 
   wrefresh(command_win);
@@ -268,23 +228,46 @@ void CDisplay::output( string str )
 void CDisplay::formPMT()
 {
     wclear(form_win);
-
-    wattron(form_win,A_REVERSE);
-    mvwprintw(form_win , 1 , 1 ,
-           "     PMT-testing Configurations    ");
-    wattroff(form_win,A_REVERSE);
-
-    mvwprintw(form_win,3,2,"SY1527:");
+    //header
+     char header[256]="PMT-testing Configuration";
+     wattron(form_win,A_REVERSE);
+     int pos=1;
+     int temp=(form_x-strlen(header))/2-1;
+     while(pos<temp){
+         mvwaddch(form_win,1,pos,' ');
+         pos++;
+     }
+     mvwprintw(form_win,1,temp,"%s",header);
+     pos=temp+strlen(header);
+     while(pos<form_x){
+         mvwaddch(form_win,1,pos,' ');
+         pos++;
+     }
+     wattroff(form_win,A_REVERSE);
+     //
+     wrefresh(form_win);
 }
 
 void CDisplay::formSingleModule(Module_Config& config)
 {
     wclear(form_win);
   // tittles
-  wattron(form_win,A_REVERSE);
-  mvwprintw(form_win , 1 , 1 ,
-         "    Station: %-2d, Name: %-10s   ", config.getStation(),config.getName());
-  wattroff(form_win,A_REVERSE);
+    char header[256];
+    sprintf(header,"Station: %-2d, Name: %-10s",config.getStation(),config.getName());
+    wattron(form_win,A_REVERSE);
+    int pos=1;
+    int temp=(form_x-strlen(header))/2-1;
+    while(pos<temp){
+        mvwaddch(form_win,1,pos,' ');
+        pos++;
+    }
+    mvwprintw(form_win,1,temp,"%s",header);
+    pos=temp+strlen(header);
+    while(pos<form_x){
+        mvwaddch(form_win,1,pos,' ');
+        pos++;
+    }
+    wattroff(form_win,A_REVERSE);
 
   // context
   mvwprintw(form_win,3,2,"Chl\tUT\tLT\tPED\t");
@@ -305,11 +288,23 @@ void CDisplay::formSingleModule(Module_Config& config)
 void CDisplay::formCCU(CC_Config &config_ccu, ModuleConfigFactory &config_modules)
 {
     wclear(form_win);
-
-    wattron(form_win,A_REVERSE);
-    mvwprintw(form_win , 1 , 1 ,
-           "     CCUSB & Module Configurations    ");
-    wattroff(form_win,A_REVERSE);
+    //
+    //header
+     char header[256]="CCUSB & Module Configurations";
+     wattron(form_win,A_REVERSE);
+     int pos=1;
+     int temp=(form_x-strlen(header))/2-1;
+     while(pos<temp){
+         mvwaddch(form_win,1,pos,' ');
+         pos++;
+     }
+     mvwprintw(form_win,1,temp,"%s",header);
+     pos=temp+strlen(header);
+     while(pos<form_x){
+         mvwaddch(form_win,1,pos,' ');
+         pos++;
+     }
+     wattroff(form_win,A_REVERSE);
 
     //CC-USB
     wattron(form_win,A_REVERSE);
@@ -346,31 +341,43 @@ void CDisplay::formCCU(CC_Config &config_ccu, ModuleConfigFactory &config_module
 void CDisplay::form()
 {
   // tittles
-  wattron(form_win,A_REVERSE);
-  mvwprintw(form_win , 1 , 1 ,
-         "     CCUSB & Module Configurations    ");
-  wattroff(form_win,A_REVERSE);
-
-  /*
-  mvwprintw(form_win,3,2,"Chl\tUT\tLT\tPED\tData");
-
-
-  for (int i = 0; i < 16; ++i)
-    {
-      mvwprintw(form_win, 2*i+5, 2,
-        "%-4d\t%-4d\t%-4d\t%-4d\t%-4d",
-		i+1 , 0 , 0 , 0 ,0 );
+    char header[256]="CCUSB & Module Configurations";
+    wattron(form_win,A_REVERSE);
+    int pos=1;
+    int temp=(form_x-strlen(header))/2-1;
+    while(pos<temp){
+        mvwaddch(form_win,1,pos,' ');
+        pos++;
     }
-*/
+    mvwprintw(form_win,1,temp,"%s",header);
+    pos=temp+strlen(header);
+    while(pos<form_x){
+        mvwaddch(form_win,1,pos,' ');
+        pos++;
+    }
+    wattroff(form_win,A_REVERSE);
+
   wrefresh(form_win);
 }
 
 void CDisplay::prompt()
 {
-  wattron(prompt_win,A_REVERSE);
-  mvwprintw( prompt_win , 1 , 1 ,
-	     "               Command               " );
-  wattroff(prompt_win,A_REVERSE);
+    //header
+    char header[256]="Command Description";
+    wattron(prompt_win,A_REVERSE);
+    int pos=1;
+    int temp=(prompt_x-strlen(header))/2-1;
+    while(pos<temp){
+        mvwaddch(prompt_win,1,pos,' ');
+        pos++;
+    }
+    mvwprintw(prompt_win,1,temp,"%s",header);
+    pos=temp+strlen(header);
+    while(pos<prompt_x){
+        mvwaddch(prompt_win,1,pos,' ');
+        pos++;
+    }
+    wattroff(prompt_win,A_REVERSE);
 
   // config
   mvwprintw(prompt_win,3,1,"Type ");
@@ -423,10 +430,10 @@ void CDisplay::prompt()
 int CDisplay::getCmd()
 {
     if(isPMT){
-        wprintw(command_win,"%s ",PMT_prompt.c_str());
+        wprintw(command_win," %s ",PMT_prompt.c_str());
     }
     else{
-        wprintw(command_win,"%s ",Normal_prompt.c_str());
+        wprintw(command_win," %s ",Normal_prompt.c_str());
     }
 
   char ch[100];
@@ -448,7 +455,7 @@ int CDisplay::getCmd()
         return -1;
       }
       else{
-        wprintw(command_win,"input: ");
+        wprintw(command_win," input: ");
         wgetstr(command_win,ch);
         filename=ch;
         return 4;
@@ -458,7 +465,7 @@ int CDisplay::getCmd()
     return 5;
   }
   else if( 0 == str.compare("show_module")){
-    wprintw(command_win,"input: ");
+    wprintw(command_win," input: ");
     wgetstr(command_win,ch);
     module_name=ch;
     return 6;
@@ -485,7 +492,7 @@ int CDisplay::getCmd()
     }
   }
   else if(0 == str.compare("mkdir")){
-        wprintw(command_win,"input: ");
+        wprintw(command_win," input: ");
         wgetstr(command_win,ch);
         dirname=ch;
 
@@ -496,7 +503,7 @@ int CDisplay::getCmd()
         return -1;
       }
       else{
-        wprintw(command_win,"input: ");
+        wprintw(command_win," input: ");
         wgetstr(command_win,ch);
         CurrentDir=ch;
 
@@ -505,7 +512,7 @@ int CDisplay::getCmd()
   }
   else if(0 == str.compare("setdir")){
     if(isPMT){
-        wprintw(command_win,"input: ");
+        wprintw(command_win," input: ");
         wgetstr(command_win,ch);
         PMTdir=ch;
         return 11;

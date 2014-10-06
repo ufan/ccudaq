@@ -53,12 +53,12 @@ CManager::CManager()
   pDisplay = NULL;
   pCCU = NULL;
 
-  //if( true == FirstLoad() )
-    {
+  if( true == FirstLoad() )
+  {
       pDisplay = new CDisplay();
-      //Config();
+      Config();
       CmdAnalyse();
-    }
+  }
 }
 
 CManager::~CManager()

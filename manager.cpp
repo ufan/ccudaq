@@ -118,7 +118,7 @@ void CManager::CmdAnalyse()
             pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
           }
           else{
-            pDisplay->output("Program is going to quit.",CDisplay::PMT_T);
+            pDisplay->output("Program is going to quit.",CDisplay::NORMAL_T);
 
             Sleep(1000);
             CLog("Quit. ");
@@ -226,49 +226,47 @@ void CManager::CmdAnalyse()
           if(isPMT){
             if(lock_isStarted){
                 lock_isStarted = false;
-                pDisplay->output("Wainting for PMT testing teminating.Data may be invalid");
+                pDisplay->output("Wainting for PMT testing teminating.Data may be invalid",CDisplay::WARNING_T);
                 pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Wainting for PMT testing teminating.Data may be invalid");
                 while( false == lock_isDaqQuited );
 
-                pDisplay->output("PMT testing Stopped forcfully. ");
+                pDisplay->output("PMT testing Stopped forcfully. ",CDisplay::PMT_T);
                 pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"PMT testing Stopped forcfully.");
             }
             else{
-                pDisplay->output("No PMT testing in run");
+                pDisplay->output("No PMT testing in run",CDisplay::PMT_T);
             }
           }
           else{
             if ( lock_isStarted )
             {
                 lock_isStarted = false;
-                pDisplay->output("Waitting for DAQ quiting... ");
+                pDisplay->output("Waitting for DAQ quiting... ",CDisplay::PMT_T);
                 pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),"Waitting for DAQ quiting... ");
                 while( false == lock_isDaqQuited );
 
                 string tempstr;
                 m_Daq_stop = clock();
-                pDisplay->output("DAQ Stoped. ");
+                pDisplay->output("DAQ Stoped. ",CDisplay::PMT_T);
                 tempstr="DAQ stopped successfully\n ";
+                pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),tempstr.c_str());
 
                 double time = (double)( m_Daq_stop - m_Daq_start )
                                         /(double)CLOCKS_PER_SEC;
 
                 char buf1[100];
-                pDisplay->output( "Statistics during last DAQ:" );
+                pDisplay->scroll_status("Statistics during last DAQ:");
                 sprintf( buf1 , "    time = %f s" , time);
-                pDisplay->output( buf1 );
-                tempstr.append(buf1);
-                tempstr+="\n ";
+                pDisplay->scroll_status(buf1);
 
                 char buf2[100];
                 sprintf( buf2 , "    hits = %d " , m_hits);
-                pDisplay->output( buf2 );
-                tempstr+=buf2;
-                pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),tempstr.c_str());
+                pDisplay->scroll_status(buf2);
+
             }
             else
             {
-                pDisplay->output("No DAQ running. ");
+                pDisplay->output("No DAQ running. ",CDisplay::WARNING_T);
             }
         }
 	    break;
@@ -276,7 +274,7 @@ void CManager::CmdAnalyse()
         case 4:
       {
           if(lock_isStarted){
-              pDisplay->output("DAQ cycle is running now.Stop it first");
+              pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
           }
           else{
               string tempstr;
@@ -284,14 +282,14 @@ void CManager::CmdAnalyse()
                     stringstream ss;
                     ss<<"WARNING: previous filename\""<<filename<<"\""
                     <<" will be replaced";
-                    pDisplay->output(ss.str().c_str());
+                    pDisplay->output(ss.str().c_str(),CDisplay::WARNING_T);
                     tempstr=ss.str();
                     tempstr.append("\n ");
                 }
                 filename=pDisplay->getFilename();
                 stringstream ss;
                 ss<< "Data will be save to file: " << CurDir<<"/"<< filename;
-                pDisplay->output(ss.str().c_str());
+                pDisplay->output(ss.str().c_str(),CDisplay::PMT_T);
                 tempstr.append(ss.str());
                 pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),tempstr.c_str());
           }
@@ -300,7 +298,7 @@ void CManager::CmdAnalyse()
       case 5:
       {
         if(lock_isStarted){
-            pDisplay->output("DAQ cycle is running now.Stop it first");
+            pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
         }
         else{
             CC_Config cur_config_cc;
@@ -312,7 +310,7 @@ void CManager::CmdAnalyse()
       case 6:
       {
           if(lock_isStarted){
-              pDisplay->output("DAQ cycle is running now.Stop it first");
+              pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
           }
           else{
               Module_Config cur_module_config;
@@ -333,7 +331,7 @@ void CManager::CmdAnalyse()
     case 7:
       {
           if(lock_isStarted){
-              pDisplay->output("DAQ cycle is running now.Stop it first");
+              pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
           }
           else{
               isPMT=true;
@@ -341,8 +339,8 @@ void CManager::CmdAnalyse()
               PulserStatus=UNCON;
               HVStatus=UNCON;
               PMTdir="";
-              pDisplay->output("you're in PMT testing mode now");
-              pDisplay->output("Please config TESTING PROCEDUR and DIRECTORY first before proceeding");
+              pDisplay->output("you're in PMT testing mode now",CDisplay::PMT_T);
+              pDisplay->output("Please config TESTING PROCEDUR and DIRECTORY first before proceeding",CDisplay::PMT_T);
               pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Initial State in PMT testing");
           }
           break;
@@ -350,13 +348,13 @@ void CManager::CmdAnalyse()
       case 8:
       {
         if(lock_isStarted){
-            pDisplay->output("PMT testing is running now.Stop it first");
+            pDisplay->output("PMT testing is running now.Stop it first",CDisplay::WARNING_T);
         }
         else{
             isPMT=false;
             delPMTConfig();
             filename="";
-            pDisplay->output("you're in Normal testing mode now");
+            pDisplay->output("you're in Normal testing mode now",CDisplay::PMT_T);
             pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),"Initial State in Normal testing");
         }
         break;
@@ -364,7 +362,7 @@ void CManager::CmdAnalyse()
       case 9:
       {
           if(lock_isStarted){
-              pDisplay->output("DAQ cycle is running now.Stop it first");
+              pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
           }
           else{
             char msg[256];
@@ -372,13 +370,13 @@ void CManager::CmdAnalyse()
             if(!MkDir(dir.c_str(),msg)){
                 string temp="Error! ";
                 temp.append(msg);
-                pDisplay->output(temp);
+                pDisplay->output(temp,CDisplay::ERROR_T);
                 pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),temp.c_str());
             }
             else{
                 string tempstr;
                 tempstr="New Directory: "+ dir;
-                pDisplay->output(tempstr);
+                pDisplay->output(tempstr,CDisplay::PMT_T);
                 pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),tempstr.c_str());
             }
           }
@@ -387,12 +385,12 @@ void CManager::CmdAnalyse()
       case 10:
       {
           if(lock_isStarted){
-              pDisplay->output("DAQ cycle is running now.Stop it first");
+              pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
           }
           else{
             CurDir=pDisplay->getCurrentDir();
             string tempstr="Files will be saved to directory: "+ CurDir;
-            pDisplay->output(tempstr);
+            pDisplay->output(tempstr,CDisplay::PMT_T);
             pDisplay->normal_status(true,CurDir.c_str(),filename.c_str(),tempstr.c_str());
           }
           break;
@@ -400,7 +398,7 @@ void CManager::CmdAnalyse()
       case 11:
       {
           if(lock_isStarted){
-              pDisplay->output("DAQ cycle is running now.Stop it first");
+              pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
           }
           else{
               string tempstr;
@@ -408,14 +406,14 @@ void CManager::CmdAnalyse()
                   stringstream ss;
                   ss<<"WARNING: previous Testing dir\""<<PMTdir<<"\""
                   <<" will be replaced";
-                  pDisplay->output(ss.str().c_str());
+                  pDisplay->output(ss.str().c_str(),CDisplay::WARNING_T);
                   tempstr=ss.str();
                   tempstr.append("\n ");
               }
               PMTdir=pDisplay->getPMTdir();
               stringstream ss;
               ss<< "New Testing Dir: " << PMTdir;
-              pDisplay->output(ss.str().c_str());
+              pDisplay->output(ss.str().c_str(),CDisplay::PMT_T);
               tempstr.append(ss.str());
               pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),tempstr.c_str());
           }
@@ -424,7 +422,7 @@ void CManager::CmdAnalyse()
       case 12:
       {
           if(!isPMTConfiged){
-              pDisplay->output("Config PMT testing procedure first");
+              pDisplay->output("Config PMT testing procedure first",CDisplay::WARNING_T);
           }
           else{
               if(pPulser->Status()){
@@ -463,7 +461,7 @@ void CManager::CmdAnalyse()
               PulserStatus=UNCON;
               HVStatus=UNCON;
               CLog("Config PMT testing successfully");
-              pDisplay->output("Config PMT-testing successfully");
+              pDisplay->output("Config PMT-testing successfully",CDisplay::PMT_T);
               pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Config PMT-testing successfully");
           }
           else{
@@ -471,7 +469,7 @@ void CManager::CmdAnalyse()
               PulserStatus=UNCON;
               HVStatus=UNCON;
               CLog("Config PMT testing failed");
-              pDisplay->output("Config PMT-tesging failed");
+              pDisplay->output("Config PMT-tesging failed",CDisplay::ERROR_T);
               pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"Config PMT-testing failed");
           }
           break;
@@ -479,11 +477,11 @@ void CManager::CmdAnalyse()
       case 14:
       {
           if(lock_isStarted){
-            pDisplay->output("DAQ cycle is running now.Stop it first");
+            pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
           }
           else{
             if(!isPMTConfiged){
-                pDisplay->output("config PMT testign first");
+                pDisplay->output("config PMT testign first",CDisplay::WARNING_T);
             }
             else{
                 pDisplay->formPMT();
@@ -512,7 +510,7 @@ bool CManager::daqCycle()
   if(fp == NULL){
       stringstream tempstr;
       tempstr<<"can't open file: "<< filename;
-      pDisplay->output(tempstr.str().c_str());
+      pDisplay->output(tempstr.str().c_str(),CDisplay::ERROR_T);
       return false;
   }
   int status;
@@ -526,7 +524,7 @@ bool CManager::daqCycle()
        if(transferCount>0){
            writeCount=fwrite(buffer,sizeof(char),transferCount,fp);
            if(writeCount != transferCount){
-               pDisplay->output("data written error, DAQ cycle terminated!");
+               pDisplay->output("data written error, DAQ cycle terminated!",CDisplay::ERROR_T);
                pDisplay->normal_status(false,CurDir.c_str(),filename.c_str(),"data written error, DAQ cycle terminated!");
                fclose(fp);
                stackStop();
@@ -553,7 +551,7 @@ bool CManager::daqCycle()
       if(transferCount>0){
           writeCount=fwrite(buffer,sizeof(char),transferCount,fp);
           if(writeCount != transferCount){
-              pDisplay->output("CAUTION!: data written remaining error!");
+              pDisplay->output("CAUTION!: data written remaining error!",CDisplay::WARNING_T);
           }
       }
   }

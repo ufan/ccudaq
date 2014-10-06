@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "CAENHVWrapper.h"
+#include "pthread_win32/include/pthread.h"
 
 struct HVChannel
 {
@@ -76,6 +77,7 @@ private:
     std::string fIPAddr;
     std::string fUserName;
     std::string fPassWord;
+    pthread_mutex_t f_lock;
     int fHandle;
     //status
     CAENHVRESULT fStatus;

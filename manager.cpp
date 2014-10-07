@@ -234,7 +234,7 @@ void CManager::CmdAnalyse()
                 pDisplay->pmt_status(true,PulserStatus,HVStatus,PMTdir.c_str(),"PMT testing Stopped forcfully.");
             }
             else{
-                pDisplay->output("No PMT testing in run",CDisplay::PMT_T);
+                pDisplay->output("No PMT testing in run",CDisplay::WARNING_T);
             }
           }
           else{
@@ -1726,7 +1726,10 @@ void CManager::_HVfeedback()
 {
     size_t size=pHVGroup.size();
     for(size_t i=0;i<size;i++){
-        pHVGroup[i]->update(config_hv[pHVGroup[i]->getSlot()]);
+        while(!pHVGroup[i]->update(config_hv[pHVGroup[i]->getSlot()]))
+        {
+            Sleep(100);
+        }
     }
 }
 

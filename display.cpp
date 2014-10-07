@@ -461,10 +461,10 @@ void CDisplay::formatChannel(int row, HVChannel &channel)
               channel.ch_name,channel.slot,channel.ch_id,channel.V0Set,
               channel.I0Set,channel.VMon,channel.IMon);
     if(channel.state){
-        wprintw(form_win,"On");
+        wprintw(form_win,"On    ");
     }
     else{
-        wprintw(form_win,"Off");
+        wprintw(form_win,"Off   ");
     }
     wattroff(form_win,ATTR);
 }

@@ -5,7 +5,7 @@
 #include <vector>
 #include <map>
 #include "CAENHVWrapper.h"
-#include "pthread_win32/include/pthread.h"
+#include "pthread.h"
 
 struct HVChannel
 {

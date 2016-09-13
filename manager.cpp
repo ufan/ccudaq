@@ -53,11 +53,11 @@ CManager::CManager()
   pDisplay = NULL;
   pCCU = NULL;
 
-  if( true == FirstLoad() )
+  if( true == FirstLoad() )// find cc-usb devices
   {
-      pDisplay = new CDisplay();
-      Config();
-      CmdAnalyse();
+    pDisplay = new CDisplay();// init the user interface
+    Config(); // read ccusb and module config files and init ccusb and all modules
+    CmdAnalyse();// at this point, the camac system is ready for DAQ. REPL(Read-Eval-Print-Loop) for user interactions
   }
 }
 

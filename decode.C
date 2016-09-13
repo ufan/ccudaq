@@ -370,7 +370,7 @@ TH1F* draw_imp(const char* filename, const char* card_name, const int chan_id)
 {
   TFile* infile=new TFile(filename);
   TDirectory* dir=infile->GetDirectory(Form("histograms_%s",card_name));
-  TH1F* hist=(TH1F*)dir->Get(Form("h_%s_%d",card_name,chan_id+1));
+  TH1F* hist=(TH1F*)dir->Get(Form("h_%s_%d",card_name,chan_id));
   hist->SetDirectory(0);
 
   delete infile;
@@ -427,6 +427,9 @@ bool RawDataConv(const char* parentDir, const char* adc_config_file)
     sprintf(buffer1,"%s/configuration.csv",raw_dir);
     sprintf(buffer2,"%s/configuration.csv",root_dir);
     gSystem->CopyFile(buffer1,buffer2);
+    sprintf(buffer1,"%s/pmt.conf",raw_dir);
+    sprintf(buffer2,"%s/pmt.conf",root_dir);
+    gSystem->CopyFile(buffer1,buffer2);
 
     // read pmt.conf file to get all the testing voltage steps
     PMT_Config pmt_config = read_pmtconfig(Form("%s/pmt.conf",raw_dir));
@@ -472,6 +475,172 @@ bool RawDataConv(const char* parentDir, const char* adc_config_file)
     printf("All the raw data of %s has been converted.\n",parentDir);
     printf("The root files are saved at %s\n",root_dir);
 
+    delete VOLTAGE;
     return true;
 }
 
+// read configuration.csv file for root file analysis
+typedef struct 
+{
+  int  test_channel;
+  char label[100];
+  char card_name[100];
+  int  card_channel;
+} PMTInfo_t;
+typedef std::vector<PMTInfo_t> PMTInfo;
+
+PMTInfo read_analysis_config(const char* filename)
+{
+    FILE* fp=fopen(filename,"r");
+    if(!fp){
+        printf("error opening %s\n",filename);
+        exit(1);
+    }
+
+    char buffer1[300];
+    fgets(buffer1,200,fp);
+    printf("%s",buffer1);
+    fgets(buffer1,200,fp);
+    printf("%s",buffer1);
+
+    PMTInfo_t pmtinfo;
+    PMTInfo   pmt_analysis_config;
+    while (!feof(fp)) {
+      fscanf(fp,"%d %s %s %d\n",&pmtinfo.test_channel, pmtinfo.label, pmtinfo.card_name, &pmtinfo.card_channel);
+      printf("%d %s %s %d\n",pmtinfo.test_channel, pmtinfo.label, pmtinfo.card_name, pmtinfo.card_channel);
+      pmt_analysis_config.push_back(pmtinfo);
+    }
+    
+    fclose(fp);
+    return pmt_analysis_config;
+}
+
+bool Fit_TestingData(const char* parentDir)
+{
+    char root_dir[300];
+    char buffer1[300];
+    sprintf(root_dir,"%s/root_file",parentDir);
+
+    gStyle->SetOptFit(11);
+
+    PMTInfo pmtinfo = read_analysis_config(Form("%s/configuration.csv",root_dir));
+    PMT_Config test_config = read_pmtconfig(Form("%s/pmt.conf",root_dir));
+
+   //---------------------------------Project corresponding hist--------------------------
+    Int_t datapoints;
+   Int_t* index;
+   Float_t* width,*high_level;
+   Float_t temp1,temp2,temp3,temp4;
+   Char_t ledconfig[200],infile[200],outfilePDF[200],outfileDAT[200],outfileNoPed[200];
+   FILE* fp_ledconfig;
+   FILE* fp;
+   FILE* fp_noped;
+
+   int CHANNEL_NUM = pmtinfo.size();
+   TH1F** hist = new TH1F*[CHANNEL_NUM];
+   TSpectrum* s=new TSpectrum(1);
+   TF1 *fitfunc,*fgaus;
+   Int_t nfound,bin;
+   Float_t *xpeaks;
+   Float_t xp,yp,xmin,xmax,sigma;
+
+   TCanvas* canvas=new TCanvas("canvas","Peaking of PMT",600,600);
+
+   int HIGHVOLTAGE_STEP = test_config.size();
+   int* VOLTAGE = new int[HIGHVOLTAGE_STEP];
+   for (int i=0; i < HIGHVOLTAGE_STEP; i++) {
+     VOLTAGE[i] = test_config[i];
+   }
+   for(int i=0;i<HIGHVOLTAGE_STEP;i++){
+       //------------------------read LED.config-----------------------------------------------
+       sprintf(ledconfig,"%s/%dV/LED.config",root_dir,VOLTAGE[i]);
+       if(!(fp_ledconfig=fopen(ledconfig,"r"))){
+           printf("error: can't open %s\n",ledconfig);
+           return false;
+       }
+       fgets(buffer1,200,fp_ledconfig);
+       printf("%s",buffer1);
+       fscanf(fp_ledconfig,"Total datapoints: %d\n",&datapoints);
+       printf("Total datapoints: %d\n",datapoints);
+       fgets(buffer1,200,fp_ledconfig);
+       printf("%s",buffer1);
+       index = new int[datapoints];
+       width = new float[datapoints];
+       high_level = new float[datapoints];
+       for(int j=0;j<datapoints;j++){
+           fscanf(fp_ledconfig,"%d %E %E %E %E %E %E\n",index+j,&temp1,width+j,high_level+j,&temp2,&temp3,&temp4);
+           printf("%d %f %5.2f %f %f %.12f %.12f\n",index[j],temp1,width[j]*1e6,high_level[j],temp2,temp3,temp4);
+       }
+       fclose(fp_ledconfig);
+       
+       //-----------------------------------------------------------------------------------------------
+       for(int j=0;j<datapoints;j++){
+           sprintf(infile,"%s/%dV/%d.root",root_dir,VOLTAGE[i],j+1);
+           sprintf(outfilePDF,"%s/%dV/%d_result.pdf",root_dir,VOLTAGE[i],j+1);
+           sprintf(outfileNoPed,"%s/%dV/%d_noped.dat",root_dir,VOLTAGE[i],j+1);
+
+           for(int k=0;k<CHANNEL_NUM;k++){
+             hist[k]= draw_imp(infile, pmtinfo[k].card_name, pmtinfo[k].card_channel);
+             hist[k]->SetTitle(Form("%dV,%5.2fus,%3.2fV,PMT_%s, %s_%d,Testing_Channel %d",VOLTAGE[i],width[j]*1e6,high_level[j],pmtinfo[k].label,pmtinfo[k].card_name,pmtinfo[k].card_channel,pmtinfo[k].test_channel));
+           }
+           //------------------------------find peak and save/print the result--------------------
+           sprintf(buffer1,"%s[",outfilePDF);
+           canvas->Print(buffer1);
+
+           fp_noped=fopen(outfileNoPed,"w");
+           if(!fp_noped){
+               printf("error: can't create %s\n",outfileNoPed);
+               return false;
+           }
+           fprintf(fp_noped,"No Pedestal,fitting result of %d.dat at %5.2fus,%3.2fV:\n",j+1,width[j]*1e6,high_level[j]);
+           char* tmp="Ch\tPMT\tMean\tSigma\n";
+           fputs(tmp,fp_noped);
+
+           for(int k=0;k<CHANNEL_NUM;k++){
+               nfound = s->Search(hist[k],2,"goff",0.05);
+               if(nfound != 1){
+                   printf("In file %s/%dV/%d.dat, PMT_%s:\n",root_dir,VOLTAGE[i],j+1,pmtinfo[k].card_name);
+                   printf("error: %d peak was found!\n",nfound);
+                   return false;
+               }
+               xpeaks = s->GetPositionX();
+               xp = xpeaks[0];
+               bin = hist[k]->GetXaxis()->FindBin(xp);
+               yp = hist[k]->GetBinContent(bin);
+               xmin = xp-100;
+               xmax = xp+100;
+               hist[k]->Fit("gaus","q","",xmin,xmax);
+               fitfunc = (TF1*)hist[k]->GetFunction("gaus");
+               sigma = fitfunc->GetParameter(2);
+               xmin = xp-5*sigma;
+               xmax = xp+5*sigma;
+               fgaus = new TF1("fgaus","gaus",xmin,xmax);
+               fgaus->SetNpx(1000);
+               hist[k]->Fit("fgaus","q");
+
+               fprintf(fp_noped,"%d\t%s\t%f\t%f\n",pmtinfo[k].test_channel,pmtinfo[k].label,fgaus->GetParameter(1),fgaus->GetParameter(2));
+               canvas->Print(outfilePDF);
+
+               delete fgaus;
+           }
+
+           fclose(fp_noped);
+           sprintf(buffer1,"%s]",outfilePDF);
+           canvas->Print(buffer1);
+           
+          for(int k=0;k<CHANNEL_NUM;k++){
+               delete hist[k];
+           }
+ 
+       }
+       delete [] index;
+       delete [] width;
+       delete [] high_level;
+
+   }
+
+   delete [] hist;
+   delete canvas;
+   //-------------------------------------------------------------------------------------
+   return true;
+}

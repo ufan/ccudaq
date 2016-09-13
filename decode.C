@@ -644,3 +644,92 @@ bool Fit_TestingData(const char* parentDir)
    //-------------------------------------------------------------------------------------
    return true;
 }
+
+bool Fit_PedestalData(const Char_t *parentDir)
+{
+    char root_dir[300];
+    char buffer1[300];
+    sprintf(root_dir,"%s/root_file",parentDir);
+    gStyle->SetOptFit(11);
+   //--------------------------------read testing configuration------------------------
+    PMTInfo pmtinfo = read_analysis_config(Form("%s/configuration.csv",root_dir));
+    PMT_Config test_config = read_pmtconfig(Form("%s/pmt.conf",root_dir));
+   //---------------------------------Project corresponding hist--------------------------
+   Char_t prefix[2][20]={"begin","end"};
+   Char_t infile[100],outfilePDF[100],outfileDAT[100];
+   FILE* fp;
+
+      int CHANNEL_NUM = pmtinfo.size();
+   TH1F** hist = new TH1F*[CHANNEL_NUM];
+TSpectrum* s=new TSpectrum(1);
+   TF1 *fitfunc,*fgaus;
+   Int_t nfound,bin;
+   Float_t *xpeaks;
+   Float_t xp,yp,xmin,xmax,sigma;
+
+   TCanvas* canvas=new TCanvas("canvas","Pedestal",600,600);
+
+   for(int i=0;i<2;i++){
+       sprintf(infile,"%s/pedestal/%s.root",root_dir,prefix[i]);
+       printf("%s\n",infile);
+       sprintf(outfilePDF,"%s/pedestal/%s_result.pdf",root_dir,prefix[i]);
+       sprintf(outfileDAT,"%s/pedestal/%s_result.dat",root_dir,prefix[i]);
+
+       for(int j=0;j<CHANNEL_NUM;j++){
+      hist[j]= draw_imp(infile, pmtinfo[j].card_name, pmtinfo[j].card_channel);
+      hist[j]->SetTitle(Form("PMT_%s, %s_%d,Testing_Channel %d",pmtinfo[j].label,pmtinfo[j].card_name,pmtinfo[j].card_channel,pmtinfo[j].test_channel));
+}
+       sprintf(buffer1,"%s[",outfilePDF);
+       canvas->Print(buffer1);
+
+       fp=fopen(outfileDAT,"w");
+       if(!fp){
+           printf("error:creating %s\n",outfileDAT);
+           return false;
+       }
+       fprintf(fp,"Fitting result of pedestal:\n");
+       char* tmp="Ch\tPMT\tMean\tSigma\n";
+       fputs(tmp,fp);
+
+       for(int k=0;k<CHANNEL_NUM;k++){
+
+           nfound = s->Search(hist[k],2,"goff",0.05);
+           if(nfound != 1){
+             printf("In file %s/pedestal/%s.root, PMT%s pedestal:\n",root_dir,prefix[i],pmtinfo[k].label);
+               printf("error: %d peak was found!\n",nfound);
+               return false;
+           }
+           xpeaks = s->GetPositionX();
+           xp = xpeaks[0];
+           bin = hist[k]->GetXaxis()->FindBin(xp);
+           yp = hist[k]->GetBinContent(bin);
+           xmin = xp-100;
+           xmax = xp+100;
+           hist[k]->Fit("gaus","q","",xmin,xmax);
+           fitfunc = (TF1*)hist[k]->GetFunction("gaus");
+           sigma = fitfunc->GetParameter(2);
+           xmin = xp-3*sigma;
+           xmax = xp+3*sigma;
+           fgaus = new TF1("fgaus","gaus",xmin,xmax);
+           fgaus->SetNpx(1000);
+           hist[k]->Fit("fgaus","q");
+
+           fprintf(fp,"%d\t%s\t%f\t%f\n",pmtinfo[k].test_channel,pmtinfo[k].label,fgaus->GetParameter(1),fgaus->GetParameter(2));
+           canvas->Print(outfilePDF);
+
+           delete fgaus;
+       }
+       fclose(fp);
+       sprintf(buffer1,"%s]",outfilePDF);
+       canvas->Print(buffer1);
+
+       for(int k=0;k<CHANNEL_NUM;k++){
+           delete hist[k];
+       }
+
+
+   }
+    delete canvas;
+
+   return true;
+}

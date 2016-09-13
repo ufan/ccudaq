@@ -2,10 +2,10 @@
 #include <stdint.h>
 #include <iostream>
 #include <fstream>
-#include "TFile.h"
 #include "TTree.h"
 #include "TH1F.h"
 #include "TF1.h"
+#include "TFile.h"
 #include "TGraph.h"
 #include "TList.h"
 #include "TCollection.h"
@@ -365,8 +365,113 @@ bool decoding(const char* infile, const char* outfile, const char* config_file)
   return true;
 }
 
-TH1F* draw_imp(const char* infile, const char* card_name, const int chan_id)
+// chan_id start from 0
+TH1F* draw_imp(const char* filename, const char* card_name, const int chan_id)
 {
-  TFile* infile=new TFile(infile);
-  Form("")
+  TFile* infile=new TFile(filename);
+  TDirectory* dir=infile->GetDirectory(Form("histograms_%s",card_name));
+  TH1F* hist=(TH1F*)dir->Get(Form("h_%s_%d",card_name,chan_id+1));
+  hist->SetDirectory(0);
+
+  delete infile;
+
+  return hist;
 }
+
+////////////////////////////////////////
+// The following functions are intended for PMT batch test
+////////////////////////////////////////
+typedef std::vector<int> PMT_Config;
+PMT_Config read_pmtconfig(const char* filename)
+{
+  FILE* fp=fopen(filename, "r");
+  if (!fp) {
+    printf("PMT Config file not exist: %s\n", filename);
+    exit(1);
+  }
+
+  int steps, voltage;
+  PMT_Config pmt_config;
+  fscanf(fp, "Voltage Step: %d\n", &steps);
+  for (int i=0; i < steps; i++) {
+    fscanf(fp, "%dV\n", &voltage);
+    pmt_config.push_back(voltage);
+  }
+
+  fclose(fp);
+
+  return pmt_config;
+}
+
+bool RawDataConv(const char* parentDir, const char* adc_config_file)
+{
+    if(!(gSystem->OpenDirectory(parentDir))){
+        printf("error: can't find directory %s\n",parentDir);
+        printf("Please check if this is the correct directory!\n");
+        return false;
+    }
+ 
+    Int_t datapoints;
+    char raw_dir[300];
+    char root_dir[300];
+    char buffer1[300];
+    char buffer2[300];
+    char infile[256];
+    char outfile[256];
+
+    FILE* fp;
+    sprintf(raw_dir,"%s/raw_data",parentDir);
+    sprintf(root_dir,"%s/root_file",parentDir);
+    if(!(gSystem->OpenDirectory(root_dir)))
+        gSystem->MakeDirectory(root_dir);
+    sprintf(buffer1,"%s/configuration.csv",raw_dir);
+    sprintf(buffer2,"%s/configuration.csv",root_dir);
+    gSystem->CopyFile(buffer1,buffer2);
+
+    // read pmt.conf file to get all the testing voltage steps
+    PMT_Config pmt_config = read_pmtconfig(Form("%s/pmt.conf",raw_dir));
+    int HIGHVOLTAGE_STEP = pmt_config.size();
+    int* VOLTAGE = new int[HIGHVOLTAGE_STEP];
+    for (int i=0; i < HIGHVOLTAGE_STEP; i++) {
+      VOLTAGE[i] = pmt_config[i];
+    }
+    for(int i=0;i<HIGHVOLTAGE_STEP;i++){
+        //------------------PMT testing data converting-------------------------------
+        sprintf(buffer1,"%s/%dV/LED.config",raw_dir,VOLTAGE[i]);
+        if(!(fp=fopen(buffer1,"r"))){
+            printf("error: can't open %s!\n",buffer1);
+            return false;
+        }
+        fgets(buffer2,200,fp);
+        fscanf(fp,"Total datapoints: %d\n",&datapoints);
+        fclose(fp);
+
+        sprintf(buffer2,"%s/%dV",root_dir,VOLTAGE[i]);
+        gSystem->MakeDirectory(buffer2);
+        sprintf(buffer2,"%s/%dV/LED.config",root_dir,VOLTAGE[i]);
+        gSystem->CopyFile(buffer1,buffer2);
+
+        sprintf(buffer1,"%s/%dV",raw_dir,VOLTAGE[i]);
+        sprintf(buffer2,"%s/%dV",root_dir,VOLTAGE[i]);
+        for(int j=0;j<datapoints;j++){
+          sprintf(infile,"%s/%d.dat",buffer1,j+1);
+          sprintf(outfile,"%s/%d.root",buffer2,j+1);
+          decoding(infile,outfile,adc_config_file);
+        }
+
+    }
+
+    //-------------------pedestal data converting----------------------------------
+    sprintf(buffer2,"%s/pedestal",root_dir);
+    gSystem->MakeDirectory(buffer2);
+    sprintf(buffer1,"%s/pedestal",raw_dir);
+
+    decoding(Form("%s/begin.dat",buffer1),Form("%s/begin.root",buffer2),adc_config_file);
+    decoding(Form("%s/end.dat",buffer1),Form("%s/end.root",buffer2),adc_config_file);
+
+    printf("All the raw data of %s has been converted.\n",parentDir);
+    printf("The root files are saved at %s\n",root_dir);
+
+    return true;
+}
+

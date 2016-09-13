@@ -4,6 +4,11 @@ project(ccudaq)
 set(ccudaq_VERSION_MAJOR 1)
 set(ccudaq_VERSION_MINOR 0)
 
+# ROOT
+list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
+find_package(ROOT 5.34 REQUIRED CONFIG COMPONENTS Eve RGL Geom Gui)
+include(${ROOT_USE_FILE})
+
 #pthread
 set(PTHREAD_DIR ${ccudaq_SOURCE_DIR}/pthread_win32)
 set(PTHREAD_INCLUDE_DIR ${PTHREAD_DIR}/include)

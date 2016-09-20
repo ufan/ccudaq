@@ -112,7 +112,7 @@ void CManager::CmdAnalyse()
                 pDisplay->output("Error Command.You're in Normal mode",CDisplay::WARNING_T);
 	    break;
 	  }
-	case 0:  // quit -------------------------------
+	case 0:  // quit(common) -------------------------------
 	  {
           if(lock_isStarted){
             pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
@@ -126,7 +126,7 @@ void CManager::CmdAnalyse()
           }
 	    break;
 	  }
-	case 1:  // config -----------------------------
+	case 1:  // config(common) -----------------------------
 	  {
 	    if ( true == lock_isStarted )
 	      {
@@ -147,7 +147,7 @@ void CManager::CmdAnalyse()
 	      }
 	    break;
 	  }
-    case 2:  // start daq cycle ---------------------
+    case 2:  // start daq cycle(normal) ---------------------
 	  {
           if(isPMT){
               if(!isPMTConfiged){
@@ -221,7 +221,7 @@ void CManager::CmdAnalyse()
           }
           break;
 	  }
-    case 3: // stop --------------------------------
+    case 3: // stop(normal) --------------------------------
 	  {
           if(isPMT){
             if(lock_isStarted){
@@ -271,7 +271,7 @@ void CManager::CmdAnalyse()
         }
 	    break;
 	  }
-        case 4:
+        case 4: //open(normal)
       {
           if(lock_isStarted){
               pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
@@ -295,7 +295,7 @@ void CManager::CmdAnalyse()
           }
           break;
       }
-      case 5:
+        case 5: //show_ccu(common)
       {
         if(lock_isStarted){
             pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
@@ -307,7 +307,7 @@ void CManager::CmdAnalyse()
         }
         break;
       }
-      case 6:
+        case 6: //show_module(common)
       {
           if(lock_isStarted){
               pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
@@ -328,7 +328,7 @@ void CManager::CmdAnalyse()
           }
           break;
       }
-    case 7:
+        case 7: //enter pmt mode
       {
           if(lock_isStarted){
               pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
@@ -345,7 +345,7 @@ void CManager::CmdAnalyse()
           }
           break;
 	}
-      case 8:
+        case 8: // exit pmt mode
       {
         if(lock_isStarted){
             pDisplay->output("PMT testing is running now.Stop it first",CDisplay::WARNING_T);
@@ -359,7 +359,7 @@ void CManager::CmdAnalyse()
         }
         break;
       }
-      case 9:
+        case 9: //mkdir(common)
       {
           if(lock_isStarted){
               pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
@@ -382,7 +382,7 @@ void CManager::CmdAnalyse()
           }
           break;
       }
-      case 10:
+        case 10: // set curdir(normal mode)
       {
           if(lock_isStarted){
               pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
@@ -395,7 +395,7 @@ void CManager::CmdAnalyse()
           }
           break;
       }
-      case 11:
+        case 11: // setdir(pmt mode)
       {
           if(lock_isStarted){
               pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
@@ -419,7 +419,7 @@ void CManager::CmdAnalyse()
           }
           break;
       }
-      case 12:
+        case 12://connect(in pmt mode)
       {
           if(!isPMTConfiged){
               pDisplay->output("Config PMT testing procedure first",CDisplay::WARNING_T);
@@ -454,7 +454,7 @@ void CManager::CmdAnalyse()
           }
           break;
       }
-      case 13:
+        case 13: //config_pmt(pmt mode)
       {
           if(ConfigPMT()){
               isPMTConfiged=true;
@@ -474,7 +474,7 @@ void CManager::CmdAnalyse()
           }
           break;
       }
-      case 14:
+        case 14: //show_pmt(pmt mode)
       {
           if(lock_isStarted){
             pDisplay->output("DAQ cycle is running now.Stop it first",CDisplay::WARNING_T);
@@ -1000,7 +1000,7 @@ bool CManager::ModuleLoad()
 bool CManager::CcudDefaultConfig()
 {
     config_cc.clear();
-    //Global: 4096 buffer length,extra buffer header
+    //Global: 4096 buffer length,extra buffer length header, close buffer at event boundaries
     config_cc.setGlobalMode(0x100);
     //Delay:  100us LAM timeout,8us trigger delay
     config_cc.setDelays(0x640a);

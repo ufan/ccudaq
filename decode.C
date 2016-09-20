@@ -287,7 +287,11 @@ bool decoding_imp(const char* raw_filename,const char* root_filename)
 
     fread(buffer_header,sizeof(char),4,fp_raw);
     pBuffer=(unsigned short*)buffer_header;
+    // first word of a buffer contains two infos:
+    //  1) buffer type: bit_15=1-->watchdog buffer, bit_14=0-->data buffer, bit_14=1-->scaler buffer
+    //  2) event number in this buffer: lower 12 bits
     event_num=pBuffer[0]&0xFFF;
+    // second word of a buffer contains the length of the remaining buffer in the unit of word.
     buffer_length=pBuffer[1]&0xFFF;
 
     int i,j,k,ch_id;
@@ -365,7 +369,7 @@ bool decoding(const char* infile, const char* outfile, const char* config_file)
   return true;
 }
 
-// chan_id start from 0
+// chan_id start from 1
 TH1F* draw_imp(const char* filename, const char* card_name, const int chan_id)
 {
   TFile* infile=new TFile(filename);

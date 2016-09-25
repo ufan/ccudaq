@@ -1873,10 +1873,14 @@ void CManager::_cleanUp()
 
 void* CManager::onlineThread(void * param)
 {
-  Int_t argc =1;
-  char* argv[] = {"online"};
-  TApplication *theApp = new TApplication("Online",&argc,argv);
-  new OnlineGUI(gClient->GetRoot(),1,1);
+  // Int_t argc =1;
+  // char* argv[] = {"online"};
+  TApplication *theApp = new TApplication("Online",0,0);
+   OnlineGUI* gui=new OnlineGUI(gClient->GetRoot(),1,1);
+   for(int i=0;i<fChannelNum;i++){
+     gui->importHist(fHistBuffer[i]->GetName().Data());
+   }
+
   theApp->Run();
   //
   printf("online thead end\n");

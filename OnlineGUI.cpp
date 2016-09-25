@@ -8,10 +8,7 @@
 #include <TH1.h>
 #include <TCanvas.h>
 #include <TApplication.h>
-
-#if !defined S_ISDIR
-#define S_ISDIR(m) (((m)&(0170000)) == (0040000))
-#endif
+#include <TTime.h>
 
 ClassImp(OnlineGUI)
 
@@ -33,7 +30,6 @@ OnlineGUI::OnlineGUI(const TGWindow *p, UInt_t w, UInt_t h) :
    // Constructor for the class OnlineGUI. Draws a control panel, divides it
    // into sub areas and maps all subwindows
    //--------------------------------------------------------------------
-
 
    Int_t i;
 
@@ -222,6 +218,10 @@ OnlineGUI::OnlineGUI(const TGWindow *p, UInt_t w, UInt_t h) :
    Resize(GetDefaultSize());
    MapWindow();
 
+   // set timer
+   fTimer = new TTimer(this ,1000);
+   fTimer->TurnOn();
+  
    // test
    importFromFile("hist4_5.root"); 
 }
@@ -273,6 +273,8 @@ OnlineGUI::~OnlineGUI()
    delete fA1;
 
    delete fFA;// global frame
+
+   delete fTimer;
 }
 
 void OnlineGUI::CloseWindow()
@@ -916,4 +918,13 @@ Bool_t OnlineGUI::importFromFile(const char *filename)
    fListBoxA->Layout();
    totalA = position;
    return kTRUE;
+}
+
+Bool_t OnlineGUI::HandleTimer(TTimer* t)
+{
+  cA->Modified();
+  cA->Update();
+  fTimer->Reset();
+
+  return kTRUE;
 }

@@ -38,6 +38,7 @@ enum CommandsId {
 
 
 class TPad;
+class TTimer;
 
 class OnlineGUI : public TGMainFrame {
 
@@ -65,6 +66,9 @@ private:
    Int_t                 cursorIter;//current true position in array "flags"
    Int_t                 xDiv, yDiv;//parameters for CanvasA division in case
                                    //of automatic display layout
+
+  TTimer              *fTimer;
+  Bool_t              HandleTimer(Timer* t);
 
    Bool_t toGreen(Window_t id);
    Bool_t toDefault(Window_t id);

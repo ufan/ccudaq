@@ -8,6 +8,7 @@ Wed May  8 14:17:58 2013 Take it from main.cpp
 #include "TString.h"
 #include "TCanvas.h"
 #include "TH1F.h"
+#include "TApplication.h"
 #include "OnlineGUI.h"
 
 #include "manager.h"
@@ -738,7 +739,7 @@ bool CManager::Config()
     }
     modules.push_back(tempmodule);
 
-    for (j=0; j<16; j++) {
+    for (int j=0; j<16; j++) {
       fHistBuffer[i*16+j].SetName(Form("h_%s_%d",config_module[i]->getName().c_str(),j+1));
       fHistBuffer[i*16+j].SetTitle(Form("%s Channel_%d in Station_%d",config_module[i]->getName().c_str(),j+1,config_module[i]->getStation()));
       fHistBuffer[i*16+j].SetBins(4098, -1.5 ,4096.5);
@@ -1873,9 +1874,9 @@ void CManager::_cleanUp()
 void* CManager::onlineThread(void * param)
 {
   Int_t argc =1;
-  char* argv = {"online"};
+  char* argv[] = {"online"};
   TApplication *theApp = new TApplication("Online",&argc,argv);
-  OnlineGUI* gui = new OnlineGUI(gClient->GetRoot(),1,1);
+  new OnlineGUI(gClient->GetRoot(),1,1);
   theApp->Run();
   //
   printf("online thead end\n");

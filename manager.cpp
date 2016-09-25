@@ -19,6 +19,9 @@ Wed May  8 14:17:58 2013 Take it from main.cpp
 #include <iomanip>
 #include <windows.h>
 
+#include "TCanvas.h"
+#include "OnlineGUI.h"
+
 using namespace std;
 
 CManager::CManager()
@@ -585,6 +588,17 @@ bool CManager::daqCycle()
 
   //close file
   fclose(fp);
+
+  // online test output
+  TCanvas* c=new TCanvas();
+  c->Print("test.pdf[");
+  for(int i=0;i<fChannelNum;i++){
+    fHistBuffer[i]->Draw();
+    c->Print("test.pdf");
+  }
+  c->Print("test.pdf]");
+  delete c;
+
   return true;
 }
 
@@ -1852,6 +1866,8 @@ void CManager::_cleanUp()
 
 void* CManager::onlineThread(void * param)
 {
+  OnlineGUI* gui = new OnlineGUI(gClient->GetRoot(),1,1);
+
   return NULL;
 }
 

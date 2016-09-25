@@ -89,7 +89,6 @@ class CManager
   //
   CDisplay* pDisplay;
 
-  pthread_t mDisplayThread;
   pthread_t mDaqThread;  // Thread for sending data to guests
 
   // public:
@@ -105,10 +104,10 @@ class CManager
   bool FirstLoad();
   bool CcusbDevFind();
   bool CcusbDevOpen();
-  bool ConfigLoad();  // Load config file
+  bool ConfigLoad();  // Load config file (CC-USB and Modules)
   bool CcudDefaultConfig();
-  bool CcuLoad();
-  bool ModuleLoad();
+  bool CcuLoad(); // Load CC-USB config file(default: cc.conf)
+  bool ModuleLoad(); // Load Module config file (default: adc.conf)
   void buildStack();
   bool Config();  // Config CCU and ADC
   void delModules();
@@ -126,9 +125,57 @@ class CManager
   clock_t m_Daq_start, m_Daq_stop;
 
   void CmdAnalyse();
-  static void* displayThread( void* );
   static void* daqThread( void* );
 
+
+  pthread_t    mOnlineThread;
+  int          fChannelNum; // from module config file: 16*module_num
+  unsigned int  fTriggerID;
+  int*          fDataBuffer;
+  bool          fFlagOdd;
+  char         fDataOdd;
+  static void* onlineThread(void *);
+
+  enum StatusCode{
+    E_BufferHeader,// buffer header decoding: event_num and buffer_length
+    E_EventHeader, // event header decoding: event_length, trigger_id
+    E_EventBody,   // event body decoding: channel datum
+    E_EventTerminator, // event terminator decoding: 0xEEEE
+    E_BufferTerminator // buffer terminator decoding: 0xFFFF
+  };
+  struct DecodeStatus
+  {
+    StatusCode   fStatus;
+
+    // buffer header info
+    int          fEventNumber; // initial value: 0xEEEEEEEE
+    int          fBufferLength; // initial value: 0xEEEEEEEE
+
+    int          fEventLength; // initial value: 0xEEEEEEEE
+    int          fTriggerID_Low; // trigger_id decoding: lower word of trigger_id, initial value: 0xEEEEEEEE
+    int          fTriggerID_High; // trigger_id decoding: higher word of trigger_id, initial value: 0xEEEEEEEE
+
+    int          fChannelIndex;
+    // summary info
+    // bool         fFlagEventComplete; // complete event flag
+    // bool         fFlagBufferComplete; // complete buffer flag
+
+    void Reset() {
+      fStatus = E_BufferHeader;
+
+      fEventNumber = 0xEEEEEEEE;
+      fBufferLength = 0xEEEEEEEE;
+      fEventLength = 0xEEEEEEEE;
+      fTriggerID_Low = 0xEEEEEEEE;
+      fTriggerID_High = 0xEEEEEEEE;
+
+      fChannelIndex = 0;
+      // fFlagBufferComplete = true;
+      // fFlagEventComplete = true;
+    }
+  };
+  DecodeStatus   fDecodeStatus;
+  void*        onlineDecode(char* buffer, size_t size);
 };
 
 

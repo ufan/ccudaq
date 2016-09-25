@@ -28,6 +28,7 @@ Wed May  8 14:13:23 2013  Take it from main.h
 #define PMTConfig_PATH "pmt.conf"
 
 class TH1F;
+class OnlineGUI;
 
 class CManager
 {
@@ -139,6 +140,9 @@ TH1F*         fHistBuffer;
 bool          fFlagOdd;
 char         fDataOdd;
 static void* onlineThread(void *);
+OnlineGUI*   fOnlineGUI;
+void SetOnlineGUI(OnlineGUI* gui);
+void ImportHist();
 
 enum StatusCode{
 E_BufferHeader,// buffer header decoding: event_num and buffer_length

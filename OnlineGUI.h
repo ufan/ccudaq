@@ -39,6 +39,7 @@ enum CommandsId {
 
 class TPad;
 class TTimer;
+class TH1F;
 
 class OnlineGUI : public TGMainFrame {
 
@@ -68,7 +69,7 @@ private:
                                    //of automatic display layout
 
   TTimer              *fTimer;
-  Bool_t              HandleTimer(Timer* t);
+  Bool_t              HandleTimer(TTimer* t);
 
    Bool_t toGreen(Window_t id);
    Bool_t toDefault(Window_t id);
@@ -87,8 +88,10 @@ public:
    void drawHist();//draws a histo in case of automatic display layout
    void doubleclickedBoxA(const char *text);
    Bool_t importHist(const char *name);
+   Bool_t importHist(TH1F* h);
   Bool_t importFromFile(const char *filename);
    void paintHist();//draws a histo in case of user defined display layout
+   void clearHist();
 
    ClassDef(OnlineGUI,0)
 };

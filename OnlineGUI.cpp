@@ -5,7 +5,7 @@
 #include <TROOT.h>
 #include <TGMsgBox.h>
 #include <TSystem.h>
-#include <TH1.h>
+#include <TH1F.h>
 #include <TCanvas.h>
 #include <TApplication.h>
 #include <TTime.h>
@@ -18,7 +18,6 @@ Bool_t kSTATUS; //to suppress call of drawHist() when no histo is highlighted
 TCanvas *cA;    //canvas in fCanvasA
 Long_t cursA; //current position in ListBoxA  
 Int_t totalA;  //total number of entries in ListBoxA 
-Int_t count;      //number of user highlighted buttons in Display Layout
 Int_t indi[2];    //survice arrays for algorithm which calculates
 Int_t indj[2];    //display layout
 
@@ -30,13 +29,8 @@ OnlineGUI::OnlineGUI(const TGWindow *p, UInt_t w, UInt_t h) :
    // Constructor for the class OnlineGUI. Draws a control panel, divides it
    // into sub areas and maps all subwindows
    //--------------------------------------------------------------------
+   int i;
 
-   Int_t i;
-
-   for (i = 0; i < 16; i++) {
-      pads[i] = NULL;
-      histInd[i] = -1;
-   }
    fHisto = new TObjArray(kMaxHist);
    position = 0;
    totalA = 0;
@@ -219,11 +213,9 @@ OnlineGUI::OnlineGUI(const TGWindow *p, UInt_t w, UInt_t h) :
    MapWindow();
 
    // set timer
-   fTimer = new TTimer(this ,1000);
+   fTimer = new TTimer(this ,1500);
    fTimer->TurnOn();
   
-   // test
-   // importFromFile("hist4_5.root"); 
 }
 
 OnlineGUI::~OnlineGUI()
@@ -326,6 +318,16 @@ Bool_t OnlineGUI::importHist(const char *name)
    return kTRUE;
 }
 
+Bool_t OnlineGUI::importHist(TH1F* h)
+{
+   if (!h) return kFALSE;
+   if (position == kMaxHist) return kFALSE;
+   fHisto->AddAt(h, position++);
+   fListBoxA->AddEntry(h->GetName(), ++totalA);
+   fListBoxA->MapSubwindows();
+   fListBoxA->Layout();
+   return kTRUE;
+}
 
 int OnlineGUI::getNextTrueIndex()
 {
@@ -392,7 +394,7 @@ void OnlineGUI::drawHist()
 
    Int_t number;  //number of highlighted histos in ListBoxA
    Int_t i;
-   number = -1;
+   number = 0;
    resetIter();
    while (getNextTrueIndex() != -1) number++;
    setCanvasDivision(number);
@@ -409,205 +411,14 @@ void OnlineGUI::drawHist()
 }
 
 
-
-Bool_t OnlineGUI::toDefault(Window_t id)
-{
-   //------------------------------------------------------------------
-   //
-   //      toDefault(Window_t id)
-   //
-   // Changes the color attributes of a window to default values (gray).
-   // Used to change the colors of the buttons in the panel "Display Layout".
-   // Does not redraw the button.
-   // So to visually change the color needs to be followed by
-   // the function NeedRedraw(TGWindow *).
-   // Input parameter - ID of the button to which the action must be applied.
-   //
-   //------------------------------------------------------------------
-
-   SetWindowAttributes_t wattr;
-   wattr.fMask = kWABackPixel;
-   wattr.fBackgroundPixel = GetDefaultFrameBackground();
-   gVirtualX->ChangeWindowAttributes(id, &wattr);
-   return kTRUE;
-
-}
-
-Bool_t OnlineGUI::toGreen(Window_t id)
-{
-   //-------------------------------------------------------------
-   //
-   //       toGreen(Window_t id)
-   //
-   // The same as above except changing the color to green.
-   //
-   //-------------------------------------------------------------
-
-   SetWindowAttributes_t wattr;
-   wattr.fMask = kWABackPixel;
-   gClient->GetColorByName("green", wattr.fBackgroundPixel);
-   gVirtualX->ChangeWindowAttributes(id, &wattr);
-   return kTRUE;
-}
-
-Bool_t OnlineGUI::isOverlap()
-{
-   //-------------------------------------------------------------
-   //
-   //         isOverlap()
-   //
-   // Checks if a selected display layout overlaps with already existing
-   // pads in the canvas cA.
-   //
-   //-------------------------------------------------------------
-
-   Int_t i, j;
-   Int_t tmpIndex;
-
-   for (i = 0; i < 4; i++) {
-      for (j = 0; j < 4; j++) {
-         if (verLay[i] && horLay[j]) {
-            tmpIndex = 4 * i + j;
-            if (histInd[tmpIndex] != -1) return kTRUE;
-         }
-      }
-   }
-   return kFALSE;
-
-}
-
-Bool_t OnlineGUI::isLayout()
-{
-   //-------------------------------------------------------
-   //
-   //        isLayout()
-   //
-   // Checks if display layout is set.
-   //
-   //--------------------------------------------------------
-
-   Int_t i;
-   for (i = 0;i < 4;i++) {
-      if (horLay[i] != 0) return kTRUE;
-      if (verLay[i] != 0) return kTRUE;
-   }
-   return kFALSE;
-
-}
-
 void OnlineGUI::paintHist()
 {
-   //--------------------------------------------------------------------
-   //
-   //              paintHist()
-   //
-   // Draws a histo in the canvas cA in case of the user defined display layout.
-   // The latest display layout has the highest priority. If an overlap
-   // with existing pads is detected, they are deleted from cA.
-   // Algorithm virtually divides cA into subpads with the matrix layout (4x4).
-   // A real pad in which histo will be drawn is constructed from virtual subpads.
-   // The number of virtual subpads for the real pad can change in the range 1-16.
-   // Arrays histInd[16] and pads[16] keep the "id" of the histo and the
-   // address of the real pad
-   //
-   //            -----------------
-   //            |   |   |   |   |
-   //            | 1 | 2 | 3 | 4 |
-   //            |---|---|---|---|
-   //            |   |   |   |   |
-   //            | 5 | 6 | 7 | 8 |
-   //            |---|---|---|---|
-   //            |   |   |   |   |
-   //            | 9 | 10| 11| 12|
-   //            |---|---|---|---|
-   //            |   |   |   |   |
-   //            | 13| 14| 15| 16|
-   //            -----------------
-   //
-   //
-   // If a histo with id=20 must be drawn in a pad which embraces virtual subpads
-   // 1,2,5,6 then
-   //              histInd[0] = 20        pads[0] = address of the real pad
-   //              histInd[1] = 20        pads[1] = NULL
-   //              histInd[4] = 20        pads[4] = NULL
-   //              histInd[5] = 20        pads[5] = NULL
-   //
-   // To search for the pads to be deleted the algorithm uses only array
-   // histInd[].
-   // Only one of the virtual subpads of the real pad keeps the address
-   // to avoid double deleting of the same object.
-   // If there is an overlap between the pads which contain the histo with
-   // the same "id", then only the latest version is drawn.
-   // All the other pads with this histo (even non overlapping with the current
-   // one) will be deleted from the canvas.
-   // To have several versions of the same histo drawn in the canvas one has
-   // to avoid pads overlapping when setting display layout.
-   //--------------------------------------------------------------------
+    cA->cd();
+    resetIter();
+    ((TH1F*) fHisto->At(getNextTrueIndex()))->Draw();
+    cA->Modified();
+    cA->Update();
 
-   Int_t retval;
-   Float_t xmin = 0.0F;
-   Float_t xmax = 0.0F;
-   Float_t ymin = 0.0F;
-   Float_t ymax = 0.0F;
-   Int_t i, j, countLocal;
-   Int_t ind;
-   Int_t tempind;
-   TPad *pad;
-   const Float_t ratio = 0.25;
-
-   if (!isLayout()) {
-      new TGMsgBox(fClient->GetRoot(), this, "Message",
-                   "Set Display Layout.",
-                   kMBIconExclamation, kMBOk, &retval);
-      return;
-   }
-   resetIter();
-   ind = getNextTrueIndex();
-   for (i = 0; i < 4; i++) {
-      if (horLay[i] && (xmin == 0.0)) xmin = i * ratio + 0.01;
-      if (horLay[i] && (xmin != 0.0)) xmax = (i + 1) * ratio - 0.01;
-   }
-   for (i = 3; i > -1; i--) {
-      if (verLay[i] && (ymin == 0.0)) ymin = (3 - i) * ratio + 0.01;
-      if (verLay[i] && (ymin != 0.0)) ymax = (4 - i) * ratio - 0.01;
-   }
-   if (isOverlap()) {
-      for (i = 0; i < 16; i++) {
-         if (verLay[i/4] && horLay[i%4]) {
-            tempind = histInd[i];
-            for (j = 0; j < 16; j++) {
-               if (histInd[j] == tempind) {
-                  histInd[j] = -1;
-                  if (pads[j]) {
-                     delete pads[j];
-                     pads[j] = NULL;
-                  }
-               }
-            }
-         }
-      }
-   }
-   pad = new TPad("pad", "pad", xmin, ymin, xmax, ymax);
-   pad->SetFillColor(10);
-   cA->cd();
-   pad->Draw();
-   pad->cd();
-   if (fHisto->At(ind))((TH1F*) fHisto->At(ind))->Draw();
-   cA->cd();
-   cA->Modified();
-   cA->Update();
-
-   countLocal = 0;
-   for (i = 0; i < 4; i++) {
-      for (j = 0; j < 4; j++) {
-         if (verLay[i] && horLay[j]) {
-            countLocal++;
-            histInd[4*i+j] = ind;
-            if (countLocal == 1) pads[4*i+j] = pad;
-            else pads[4*i+j] = NULL;
-         }
-      }
-   }
    return;
 }
 
@@ -628,8 +439,6 @@ Bool_t OnlineGUI::ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2)
    Int_t buttons;//used to construct message panel when Close button is clicked
    Int_t numb;//to update layout of list boxes
    Int_t i, j;
-   Int_t imin, imax;//to calculate display layout
-   Int_t jmin, jmax;//to calculate display layout
 
    switch (GET_MSG(msg)) {
       case kC_COMMAND:
@@ -657,18 +466,10 @@ Bool_t OnlineGUI::ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2)
                      if (fMultiButton->GetState()) drawHist();//Automatic display layout
                      else {
                         paintHist(); //User defined display layout
-
-                        // Total number of buttons which can be set in "Display Layout" panel by a user
-                        count = 2;
                      }
                      break;
 
                   case M_CLEAR_A:
-                     for (int k = 0; k < 16; k++) {
-                        histInd[k] = -1;
-                        if (pads[k]) delete pads[k];
-                        pads[k] = NULL;
-                     }
                      cA->cd();
                      cA->Clear();
                      cA->Update();
@@ -693,8 +494,7 @@ Bool_t OnlineGUI::ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2)
 
                      if (!fMultiButton->GetState() && (totalA > 0)) {
                         if ((cursA > 0) && (cursA <= totalA)) cursA--;
-                        if (cursA < 1) cursA = 1;
-                        if (cursA > totalA) cursA = totalA;
+                        if (cursA < 1) cursA = totalA;
                         fListBoxA->Select(cursA);
                         numb = cursA;
                         while (((--numb) % 14) != 0) { }
@@ -710,8 +510,7 @@ Bool_t OnlineGUI::ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2)
 
                      if (!fMultiButton->GetState() && (totalA > 0)) {
                         if ((cursA > 0) && (cursA <= totalA)) cursA++;
-                        if (cursA < 1) cursA = 1;
-                        if (cursA > totalA) cursA = totalA;
+                        if (cursA > totalA) cursA = 1;
                         fListBoxA->Select(cursA);
                         numb = cursA;
                         while (((--numb) % 14) != 0) { }
@@ -738,51 +537,6 @@ Bool_t OnlineGUI::ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2)
                      }
                      break;
                   default:
-
-                     // Process the panel "Display Layout"
-
-                     if (parm1 >= 500 && parm1 <= 515 && !fMultiButton->GetState()) {
-                        if (count == 2) count = 0;
-                        if (count < 2) {
-                           toGreen(fLayoutButton[parm1-500]->GetId());
-                           verLay[(parm1-500)/4] = 1;
-                           horLay[(parm1-500)%4] = 1;
-                           fClient->NeedRedraw(fLayoutButton[parm1-500]);
-                           indi[count] = (parm1 - 500) / 4;
-                           indj[count] = (parm1 - 500) % 4;
-                           count++;
-                           if (count == 2) {
-                              imin = (indi[0] < indi[1]) ? indi[0] : indi[1];
-                              imax = (indi[0] > indi[1]) ? indi[0] : indi[1];
-                              jmin = (indj[0] < indj[1]) ? indj[0] : indj[1];
-                              jmax = (indj[0] > indj[1]) ? indj[0] : indj[1];
-                              for (i = 0;i < 4;i++) {
-                                 for (j = 0;j < 4;j++) {
-                                    if (i >= imin && i <= imax && j >= jmin && j <= jmax) {
-                                       toGreen(fLayoutButton[4*i+j]->GetId());
-                                       verLay[i] = 1;
-                                       horLay[j] = 1;
-                                    } else {
-                                       toDefault(fLayoutButton[4*i+j]->GetId());
-                                       if (i < imin || i > imax) verLay[i] = 0;
-                                       if (j < jmin || j > jmax) horLay[j] = 0;
-                                    }
-                                    fClient->NeedRedraw(fLayoutButton[4*i+j]);
-                                 }
-                              }
-                           }
-                           if (count == 1) {
-                              for (i = 0;i < 16;i++) {
-                                 if (i != (parm1 - 500)) {
-                                    toDefault(fLayoutButton[i]->GetId());
-                                    if (i / 4 != (parm1 - 500) / 4) verLay[i/4] = 0;
-                                    if (i % 4 != (parm1 - 500) % 4) horLay[i%4] = 0;
-                                    fClient->NeedRedraw(fLayoutButton[i]);
-                                 }
-                              }
-                           }
-                        }
-                     }
                      break;
                }
 
@@ -801,17 +555,7 @@ Bool_t OnlineGUI::ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2)
                      cursA = 0;
                      cA->Clear();
                      cA->Update();
-                     for (i = 0; i < 16; i++) {
-                        toDefault(fLayoutButton[i]->GetId());
-                        fClient->NeedRedraw(fLayoutButton[i]);
-                        verLay[i/4] = 0;
-                        horLay[i%4] = 0;
-                     }
-                     count = 0;
-                     for (j = 0; j < 16; j++) {
-                        pads[j] = NULL;
-                        histInd[j] = -1;
-                     }
+
                      resetFlags();
                      kSTATUS = kFALSE;
                      break;
@@ -833,8 +577,9 @@ Bool_t OnlineGUI::ProcessMessage(Long_t msg, Long_t parm1, Long_t parm2)
                      if (!fListBoxA->GetMultipleSelections()) {
                         resetFlags();
                         flags[parm2-1] = kTRUE;
-                     } else
+                     } else{
                         flags[parm2-1] = !flags[parm2-1];
+                     }
                      kSTATUS = kTRUE;
                      break;
 
@@ -865,10 +610,12 @@ void OnlineGUI::doubleclickedBoxA(const char * /*text*/)
    // histogram.
    //
    //------------------------------------------------------------------
+//   if(getNextTrueIndex() != -1)
+//    flags[getNextTrueIndex()]= kFALSE;
+//   flags[cursA-1] = kTRUE;
 
    paintHist(); //User defined display layout
-   // Total number of buttons which can be set in "Display Layout" panel by a user
-   count = 2;
+
 }
 
 Bool_t OnlineGUI::importFromFile(const char *filename)
@@ -922,9 +669,27 @@ Bool_t OnlineGUI::importFromFile(const char *filename)
 
 Bool_t OnlineGUI::HandleTimer(TTimer* t)
 {
-  cA->Modified();
-  cA->Update();
-  fTimer->Reset();
+  if (!fListBoxA->GetMultipleSelections()){
+      cA->cd();
+      cA->Modified();
+      cA->Update();
+  }
+  else{
+      for(int i=0;i< xDiv;i++){
+          for(int j=0;j<yDiv;j++){
+              cA->cd(j*xDiv+i+1);
+              gPad->Modified();
+              gPad->Update();
+          }
+      }
+  }
+//  fTimer->Reset();
 
   return kTRUE;
+}
+
+void OnlineGUI::clearHist()
+{
+    fHisto->Clear();
+    fListBoxA->RemoveAll();
 }

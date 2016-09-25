@@ -7,6 +7,8 @@ Wed May  8 14:17:58 2013 Take it from main.cpp
 ****************************************************/
 #include "TString.h"
 #include "TCanvas.h"
+#include "TROOT.h"
+#include "TDirectory.h"
 #include "TH1F.h"
 #include "TApplication.h"
 #include "OnlineGUI.h"
@@ -41,6 +43,7 @@ CManager::CManager()
   // online /////////////
   fDataBuffer = NULL;
 fHistBuffer = NULL;
+fOnlineGUI = NULL;
   fTriggerID = 0;
   fFlagOdd = false;
   fDataOdd = -1;
@@ -596,16 +599,6 @@ bool CManager::daqCycle()
   sprintf(msg,"Total: %d events",fTriggerID+1);
   pDisplay->scroll_status(msg);
 
-  // online test output
-  TCanvas* c=new TCanvas();
-  c->Print("test.pdf[");
-  for(int i=0;i<fChannelNum;i++){
-    fHistBuffer[i].Draw();
-    c->Print("test.pdf");
-  }
-  c->Print("test.pdf]");
-  delete c;
-
   return true;
 }
 
@@ -724,8 +717,13 @@ bool CManager::Config()
   fDataOdd = -1;
   fDecodeStatus.Reset();
   if(fHistBuffer){
+    if(fOnlineGUI){
+        fOnlineGUI->clearHist();
+    }
     delete fHistBuffer;
   }
+//  gDirectory->cd();
+//  gDirectory->Print();
   fHistBuffer = new TH1F[fChannelNum];
 
   //
@@ -743,9 +741,11 @@ bool CManager::Config()
       fHistBuffer[i*16+j].SetName(Form("h_%s_%d",config_module[i]->getName().c_str(),j+1));
       fHistBuffer[i*16+j].SetTitle(Form("%s Channel_%d in Station_%d",config_module[i]->getName().c_str(),j+1,config_module[i]->getStation()));
       fHistBuffer[i*16+j].SetBins(4098, -1.5 ,4096.5);
-      fHistBuffer[i*16+j].SetDirectory(0);
+//      fHistBuffer[i*16+j].SetDirectory(0);
     }
   }
+  if(fOnlineGUI)
+      ImportHist();
 
   if( true == flag )
     {
@@ -1873,19 +1873,32 @@ void CManager::_cleanUp()
 
 void* CManager::onlineThread(void * param)
 {
-  // Int_t argc =1;
-  // char* argv[] = {"online"};
-  TApplication *theApp = new TApplication("Online",0,0);
+    CManager* pMan = ( CManager* )param;
+   Int_t argc =1;
+   char* argv[] = {"online"};
+  TApplication *theApp = new TApplication("Online",&argc,argv);
    OnlineGUI* gui=new OnlineGUI(gClient->GetRoot(),1,1);
-   for(int i=0;i<fChannelNum;i++){
-     gui->importHist(fHistBuffer[i]->GetName().Data());
-   }
+   pMan->SetOnlineGUI(gui);
+   pMan->ImportHist();
 
   theApp->Run();
   //
   printf("online thead end\n");
 
   return NULL;
+}
+
+void CManager::SetOnlineGUI(OnlineGUI *gui)
+{
+    if(!fOnlineGUI)
+        fOnlineGUI = gui;
+}
+
+void CManager::ImportHist()
+{
+    for(int i=0;i<fChannelNum;i++){
+        fOnlineGUI->importHist(fHistBuffer+i);
+    }
 }
 
 void CManager::onlineDecode(char* buffer, size_t size)

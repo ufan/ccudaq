@@ -98,8 +98,8 @@ function(ROOT_GENERATE_DICTIONARY dictionary)
     endif()
   endforeach()
   #---call rootcint------------------------------------------
-  add_custom_command(OUTPUT ${dictionary}.cxx ${dictionary}.h
-    COMMAND ${ROOTCINT_EXECUTABLE} -f  ${dictionary}.cxx
+  add_custom_command(OUTPUT ${dictionary}.cpp ${dictionary}.h
+    COMMAND ${ROOTCINT_EXECUTABLE} -f  ${dictionary}.cpp
     -c ${ARG_OPTIONS} ${includedirs} ${headerfiles} ${linkdefs}
     DEPENDS ${headerfiles} ${linkdefs})
 endfunction()
@@ -149,13 +149,14 @@ set(CAENHV_DLLS ${CAENHV_DIR}/dll/CAENHVWrapper.dll)
 include_directories(${CAENHV_INCLUDE_DIR})
 
 #####################################################
-set(SOURCES main.cpp nsclmodule.cpp CCCUSB.cpp CCCUSBReadoutList.cpp config.cpp display.cpp log.cpp manager.cpp VISASystemManager.cpp VISAInstrument.cpp AFG3252.cpp SYX527.cpp)
+set(SOURCES main.cpp nsclmodule.cpp CCCUSB.cpp CCCUSBReadoutList.cpp config.cpp display.cpp log.cpp manager.cpp VISASystemManager.cpp VISAInstrument.cpp AFG3252.cpp SYX527.cpp OnlineGUI.cpp)
 
 # generate ROOT dictionary for the GUI class
 set(ROOT_DICT_PRESOURCES OnlineGUI.h)
 ROOT_GENERATE_DICTIONARY(OnlineGUI_Dict ${ROOT_DICT_PRESOURCES} LINKDEF LinkDef.h)
-set(ROOT_DICT_SOURCES OnlineGUI_Dict.cxx)
+set(ROOT_DICT_SOURCES OnlineGUI_Dict.cpp)
 set(SOURCES ${SOURCES} ${ROOT_DICT_SOURCES})
+message(STATUS "SOURCES = ${SOURCES}")
 
 add_executable(ccudaq ${SOURCES})
 target_link_libraries(ccudaq ${PTHREAD_LIBRARIES} ${PDC_LIBRARIES} ${XXUSB_LIBRARIES} ${WIN_LIBRARIES} ${VISA_LIBRARIES} ${CAENHV_LIBRARIES} ${ROOT_LIBRARIES})

@@ -5,7 +5,10 @@
 # Update History:
 Wed May  8 14:17:58 2013 Take it from main.cpp
 ****************************************************/
-
+#include "TString.h"
+#include "TCanvas.h"
+#include "TH1F.h"
+#include "OnlineGUI.h"
 
 #include "manager.h"
 #include "log.h"
@@ -18,9 +21,6 @@ Wed May  8 14:17:58 2013 Take it from main.cpp
 #include <sstream>
 #include <iomanip>
 #include <windows.h>
-
-#include "TCanvas.h"
-#include "OnlineGUI.h"
 
 using namespace std;
 
@@ -39,6 +39,7 @@ CManager::CManager()
 
   // online /////////////
   fDataBuffer = NULL;
+fHistBuffer = NULL;
   fTriggerID = 0;
   fFlagOdd = false;
   fDataOdd = -1;
@@ -528,7 +529,7 @@ bool CManager::daqCycle()
   //TODO: online init
   fDecodeStatus.Reset();
   for (int i=0; i< fChannelNum; i++) {
-    fHistBuffer[i]->Reset();
+    fHistBuffer[i].Reset();
   }
   
   //init
@@ -589,11 +590,16 @@ bool CManager::daqCycle()
   //close file
   fclose(fp);
 
+  // output total events
+  char msg[100];
+  sprintf(msg,"Total: %d events",fTriggerID+1);
+  pDisplay->scroll_status(msg);
+
   // online test output
   TCanvas* c=new TCanvas();
   c->Print("test.pdf[");
   for(int i=0;i<fChannelNum;i++){
-    fHistBuffer[i]->Draw();
+    fHistBuffer[i].Draw();
     c->Print("test.pdf");
   }
   c->Print("test.pdf]");
@@ -718,9 +724,10 @@ bool CManager::Config()
   fDecodeStatus.Reset();
   if(fHistBuffer){
     delete fHistBuffer;
-    fHistBuffer = new TH1F[fChannelNum];
   }
+  fHistBuffer = new TH1F[fChannelNum];
 
+  //
   flag=true;
   NSCLmodule* tempmodule;
   for(int i=0;i<size;i++){
@@ -731,10 +738,9 @@ bool CManager::Config()
     }
     modules.push_back(tempmodule);
 
-    TString card_name = config_module[i]->getName();
     for (j=0; j<16; j++) {
-      fHistBuffer[i*16+j].SetName(Form("h_%s_%d",card_name.Data(),j+1));
-      fHistBuffer[i*16+j].SetTitle(Form("%s Channel_%d in Station_%d",card_name.Data(),j+1,config_module[i]->getStation()));
+      fHistBuffer[i*16+j].SetName(Form("h_%s_%d",config_module[i]->getName().c_str(),j+1));
+      fHistBuffer[i*16+j].SetTitle(Form("%s Channel_%d in Station_%d",config_module[i]->getName().c_str(),j+1,config_module[i]->getStation()));
       fHistBuffer[i*16+j].SetBins(4098, -1.5 ,4096.5);
       fHistBuffer[i*16+j].SetDirectory(0);
     }
@@ -1866,7 +1872,13 @@ void CManager::_cleanUp()
 
 void* CManager::onlineThread(void * param)
 {
+  Int_t argc =1;
+  char* argv = {"online"};
+  TApplication *theApp = new TApplication("Online",&argc,argv);
   OnlineGUI* gui = new OnlineGUI(gClient->GetRoot(),1,1);
+  theApp->Run();
+  //
+  printf("online thead end\n");
 
   return NULL;
 }
@@ -1902,7 +1914,7 @@ void CManager::onlineDecode(char* buffer, size_t size)
       int chid = 16*(fDecodeStatus.fChannelIndex/16) + (pbuffer[i]>>12);
       fDataBuffer[chid] = pbuffer[i]&0xFFF;
       // TODO: histogram filling
-      fHistBuffer[chid]->Fill(fDataBuffer[chid]);
+      fHistBuffer[chid].Fill(fDataBuffer[chid]);
       fDecodeStatus.fEventLength--;
       fDecodeStatus.fBufferLength--;
       fDecodeStatus.fChannelIndex++;

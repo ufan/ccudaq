@@ -24,9 +24,11 @@ Wed May  8 14:13:23 2013  Take it from main.h
 #include "AFG3252.h"
 #include "PMTTestingConfig.h"
 #include "SYX527.h"
-#include "TH1F.h"
 
 #define PMTConfig_PATH "pmt.conf"
+
+class TH1F;
+
 class CManager
 {
 public:

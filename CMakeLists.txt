@@ -5,9 +5,59 @@ set(ccudaq_VERSION_MAJOR 1)
 set(ccudaq_VERSION_MINOR 0)
 
 # ROOT
-list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
-find_package(ROOT 5.34 REQUIRED CONFIG COMPONENTS Eve RGL Geom Gui)
-include(${ROOT_USE_FILE})
+if(NOT DEFINED ENV{ROOTSYS})
+    message(FATAL_ERROR "Please set environment variable ROOTSYS in your system")
+else()
+    set(ROOTSYS $ENV{ROOTSYS})
+    message(STATUS "ROOTSYS = ${ROOTSYS}")
+endif()
+if(WIN32)
+    find_program(ROOTCINT_EXECUTABLE rootcint PATHS ${ROOTSYS}/bin)
+elseif(UNIX)
+    find_program(ROOTCINT_EXECUTABLE rootcint PATHS ${ROOTSYS}/bin)
+    find_program(ROOT_CONFIG_EXECUTABLE root-config PATHS ${ROOTSYS}/bin)
+else(WIN32)
+    message(FATAL_ERROR "Platform not supportted: only windows and unix are supported")
+endif(WIN32)
+
+#root include path
+if(WIN32)
+    set(ROOT_INCLUDE_DIR ${ROOTSYS}/include)
+else(WIN32)
+    execute_process(
+        COMMAND ${ROOT_CONFIG_EXECUTABLE} --incdir
+        OUTPUT_VARIABLE ROOT_INCLUDE_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(WIN32)
+include_directories(${ROOT_INCLUDE_DIR})
+message(STATUS "ROOT_INCLUDE_DIR = ${ROOT_INCLUDE_DIR}")
+
+#root library
+if(WIN32)
+    set(ROOT_LIBRARY_DIR ${ROOTSYS}/lib)
+    set(ROOT_LIBRARIES ${ROOTSYS}/lib/libCore.lib
+                 ${ROOTSYS}/lib/libCint.lib ${ROOTSYS}/lib/libHist.lib
+                 ${ROOTSYS}/lib/libGraf.lib ${ROOTSYS}/lib/libGraf3d.lib
+                 ${ROOTSYS}/lib/libGpad.lib ${ROOTSYS}/lib/libTree.lib
+                 ${ROOTSYS}/lib/libRint.lib ${ROOTSYS}/lib/libPostscript.lib
+                 ${ROOTSYS}/lib/libMatrix.lib ${ROOTSYS}/lib/libPhysics.lib
+                 ${ROOTSYS}/lib/libNet.lib ${ROOTSYS}/lib/libRIO.lib
+                 ${ROOTSYS}/lib/libMathCore.lib
+                 ${ROOTSYS}/lib/libSpectrum.lib
+                 ${ROOTSYS}/lib/libGui.lib ${ROOTSYS}/lib/libGraf.lib
+                 ${ROOTSYS}/lib/libGpad.lib)
+else(WIN32)
+    execute_process(COMMAND ${ROOT_CONFIG_EXECUTABLE} --libdir
+        OUTPUT_VARIABLE ROOT_LIBRARY_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${ROOT_CONFIG_EXECUTABLE} --glibs
+        OUTPUT_VARIABLE ROOT_LIBRARIES
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(ROOT_LIBRARIES ${ROOT_LIBRARIES} -lSpectrum)
+endif(WIN32)
+link_directories(${ROOT_LIBRARY_DIR})
+message(STATUS "ROOT_LIBRARY_DIR = ${ROOT_LIBRARY_DIR}")
+message(STATUS "ROOT_LIBRARIES = ${ROOT_LIBRARIES}")
 
 #pthread
 set(PTHREAD_DIR ${ccudaq_SOURCE_DIR}/pthread_win32)
@@ -56,7 +106,7 @@ include_directories(${CAENHV_INCLUDE_DIR})
 #####################################################
 set(SOURCES main.cpp nsclmodule.cpp CCCUSB.cpp CCCUSBReadoutList.cpp config.cpp display.cpp log.cpp manager.cpp VISASystemManager.cpp VISAInstrument.cpp AFG3252.cpp SYX527.cpp)
 add_executable(ccudaq ${SOURCES})
-target_link_libraries(ccudaq ${PTHREAD_LIBRARIES} ${PDC_LIBRARIES} ${XXUSB_LIBRARIES} ${WIN_LIBRARIES} ${VISA_LIBRARIES} ${CAENHV_LIBRARIES})
+target_link_libraries(ccudaq ${PTHREAD_LIBRARIES} ${PDC_LIBRARIES} ${XXUSB_LIBRARIES} ${WIN_LIBRARIES} ${VISA_LIBRARIES} ${CAENHV_LIBRARIES} ${ROOT_LIBRARIES})
 
 file(COPY ${PTHREAD_DLLS} DESTINATION ${PROJECT_BINARY_DIR})
 file(COPY ${PDC_DLLS} DESTINATION ${PROJECT_BINARY_DIR})

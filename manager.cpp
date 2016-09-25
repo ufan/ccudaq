@@ -76,8 +76,8 @@ CManager::~CManager()
   if( fDataBuffer )
     delete fDataBuffer;
   //TODO
-  // if( fHistBuffer)
-    // delete fHistBuffer;
+  if( fHistBuffer)
+    delete fHistBuffer;
   delModules();
   delModuleConfig();
   //PMT
@@ -524,7 +524,10 @@ bool CManager::daqCycle()
 {
   //TODO: online init
   fDecodeStatus.Reset();
-
+  for (int i=0; i< fChannelNum; i++) {
+    fHistBuffer[i]->Reset();
+  }
+  
   //init
   daqInit();
   //start stack execute
@@ -562,11 +565,6 @@ bool CManager::daqCycle()
         return false;
       }
       onlineDecode(buffer, transferCount);
-      if(fTriggerID%100==0){
-        char msg[100];
-        sprintf(msg,"%d events",fTriggerID+1);
-        pDisplay->scroll_status(msg);
-      }
     }
   }
   //stop stack execute
@@ -704,8 +702,10 @@ bool CManager::Config()
   fFlagOdd = false;
   fDataOdd = -1;
   fDecodeStatus.Reset();
-  // TODO
-  // fHistBuffer = new TH1F[fChannelNum];
+  if(fHistBuffer){
+    delete fHistBuffer;
+    fHistBuffer = new TH1F[fChannelNum];
+  }
 
   flag=true;
   NSCLmodule* tempmodule;
@@ -716,6 +716,14 @@ bool CManager::Config()
       break;
     }
     modules.push_back(tempmodule);
+
+    TString card_name = config_module[i]->getName();
+    for (j=0; j<16; j++) {
+      fHistBuffer[i*16+j].SetName(Form("h_%s_%d",card_name.Data(),j+1));
+      fHistBuffer[i*16+j].SetTitle(Form("%s Channel_%d in Station_%d",card_name.Data(),j+1,config_module[i]->getStation()));
+      fHistBuffer[i*16+j].SetBins(4098, -1.5 ,4096.5);
+      fHistBuffer[i*16+j].SetDirectory(0);
+    }
   }
 
   if( true == flag )
@@ -1842,9 +1850,9 @@ void CManager::_cleanUp()
   pPulser->PowerOff(2);
 }
 
-void CManager::onlineThread(void * param)
+void* CManager::onlineThread(void * param)
 {
-  
+  return NULL;
 }
 
 void CManager::onlineDecode(char* buffer, size_t size)
@@ -1878,7 +1886,7 @@ void CManager::onlineDecode(char* buffer, size_t size)
       int chid = 16*(fDecodeStatus.fChannelIndex/16) + (pbuffer[i]>>12);
       fDataBuffer[chid] = pbuffer[i]&0xFFF;
       // TODO: histogram filling
-      // fHist[chid]->Fill(fDataBuffer[chid]);
+      fHistBuffer[chid]->Fill(fDataBuffer[chid]);
       fDecodeStatus.fEventLength--;
       fDecodeStatus.fBufferLength--;
       fDecodeStatus.fChannelIndex++;
@@ -1904,11 +1912,18 @@ void CManager::onlineDecode(char* buffer, size_t size)
         fDecodeStatus.fTriggerID_Low = 0xEEEEEEEE;
         fDecodeStatus.fChannelIndex = 0;
         fDecodeStatus.fBufferLength--;
+
         if(!(--fDecodeStatus.fEventNumber)){
           fDecodeStatus.fStatus = E_BufferTerminator;
         }
         else{
           fDecodeStatus.fStatus = E_EventHeader;
+        }
+
+        if(fTriggerID%100==0){
+          char msg[100];
+          sprintf(msg,"%d events",fTriggerID+1);
+          pDisplay->scroll_status(msg);
         }
       }
       break;
@@ -1960,4 +1975,6 @@ void CManager::onlineDecode(char* buffer, size_t size)
     }
     // TODO: 2) function array implementation
   }
+
+  return;
 }

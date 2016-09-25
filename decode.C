@@ -1,5 +1,5 @@
 #include "stdio.h"
-#include <stdint.h>
+// #include <stdint.h>
 #include <iostream>
 #include <fstream>
 #include "TTree.h"
@@ -67,10 +67,10 @@ public:
   }
 
 private:
-  uint16_t UT[16];
-  uint16_t LT[16];
-  int16_t PED[16];
-  uint16_t Ctrl;
+  UShort_t UT[16];
+  UShort_t LT[16];
+  Short_t PED[16];
+  UShort_t Ctrl;
   int station;
   std::string name;
 
@@ -93,28 +93,28 @@ public:
   inline int getStation(){
       return station;
   }
-  inline void setCtrl(uint16_t value){
+  inline void setCtrl(UShort_t value){
       Ctrl=value;
   }
-  inline uint16_t getCtrl(){
+  inline UShort_t getCtrl(){
       return Ctrl;
   }
-  inline void setLT(int ch_id,uint16_t value){
+  inline void setLT(int ch_id,UShort_t value){
       LT[ch_id-1]=value;
   }
-  inline uint16_t getLT(int ch_id){
+  inline UShort_t getLT(int ch_id){
       return LT[ch_id-1];
   }
-  inline void setUT(int ch_id,uint16_t value){
+  inline void setUT(int ch_id,UShort_t value){
       UT[ch_id-1]=value;
   }
-  inline uint16_t getUT(int ch_id){
+  inline UShort_t getUT(int ch_id){
       return UT[ch_id-1];
   }
-  inline void setPED(int ch_id,int16_t value){
+  inline void setPED(int ch_id,Short_t value){
       PED[ch_id-1]=value;
   }
-  inline int16_t getPED(int ch_id){
+  inline Short_t getPED(int ch_id){
       return PED[ch_id-1];
   }
 };
@@ -199,12 +199,12 @@ bool read_config(const char* filename)
 
                         if ( 0 == tempint_2 )
                         {
-                            uint16_t ctrl[3];
+                            UShort_t ctrl[3];
                             for (int i = 0; i < 3; ++i)
                             {
                                 fp >> ( ctrl[ i ] );
                             }
-                            uint16_t control=(ctrl[0]<<2) + (ctrl[1]<<1) + ctrl[2];
+                            UShort_t control=(ctrl[0]<<2) + (ctrl[1]<<1) + ctrl[2];
                             tempconfig->setCtrl(control);
                         }
                         else if( tempint_2 > 0 && tempint_2 <= 16 )

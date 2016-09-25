@@ -223,7 +223,7 @@ OnlineGUI::OnlineGUI(const TGWindow *p, UInt_t w, UInt_t h) :
    fTimer->TurnOn();
   
    // test
-   importFromFile("hist4_5.root"); 
+   // importFromFile("hist4_5.root"); 
 }
 
 OnlineGUI::~OnlineGUI()
